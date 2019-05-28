@@ -7,6 +7,7 @@
 #include <stdexcept>
 #include <functional>
 #include <cstdlib>
+#include <optional>
 
 const int WIDTH = 800;
 const int HEIGHT = 600;
@@ -23,6 +24,15 @@ const bool enableValidationLayers = true;
 
 VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger);
 void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator);
+
+struct QueueFamilyIndices 
+{
+	std::optional<uint32_t> graphicsFamily;
+
+	bool isComplete() {
+		return graphicsFamily.has_value();
+	}
+};
 
 class TriangleApp
 {
@@ -53,10 +63,14 @@ private:
 
 	void SetupDebugMessenger();
 	void CreateInstance();
+	QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device);
+	bool IsDeviceSuitable(VkPhysicalDevice device);
+	void PickPhysicalDevice();
 
 	GLFWwindow* window;
 	VkInstance instance;
 	VkDebugUtilsMessengerEXT debugMessenger;
+	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
 };
 
 int RunApp();
