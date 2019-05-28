@@ -66,9 +66,13 @@ private:
 	QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device);
 	bool IsDeviceSuitable(VkPhysicalDevice device);
 	void PickPhysicalDevice();
+	void CreateLogicalDevice();
 
 	GLFWwindow* window;
 	VkInstance instance;
+	VkDevice device;
+	VkQueue graphicsQueue;
+
 	VkDebugUtilsMessengerEXT debugMessenger;
 	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
 };
