@@ -79,6 +79,7 @@ private:
 	void CreateLogicalDevice();
 	void CreateSwapChain();
 	void CreateImageViews();
+	void CreateRenderPass();
 	void CreateGraphicsPipeline();
 
 	QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device);
@@ -89,6 +90,7 @@ private:
 	bool CheckValidationLayerSupport();
 	bool CheckDeviceExtensionSupport(VkPhysicalDevice device);
 	bool IsDeviceSuitable(VkPhysicalDevice device);
+	VkShaderModule CreateShaderModule(const std::vector<char>& code);
 
 	GLFWwindow* window;
 	VkInstance instance;
@@ -101,6 +103,9 @@ private:
 	std::vector<VkImageView> swapChainImageViews;
 	VkFormat swapChainImageFormat;
 	VkExtent2D swapChainExtent;
+	VkRenderPass renderPass;
+	VkPipelineLayout pipelineLayout;
+	VkPipeline graphicsPipeline;
 
 	VkDebugUtilsMessengerEXT debugMessenger;
 	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
