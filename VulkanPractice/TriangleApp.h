@@ -9,11 +9,15 @@
 #include <cstdlib>
 #include <optional>
 
-const int WIDTH = 800;
-const int HEIGHT = 600;
+const int WIDTH = 1280;
+const int HEIGHT = 720;
 
 const std::vector<const char*> validationLayers = {
 	"VK_LAYER_KHRONOS_validation"
+};
+
+const std::vector<const char*> deviceExtensions = {
+	VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
 
 #ifdef NDEBUG
@@ -28,10 +32,18 @@ void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT
 struct QueueFamilyIndices 
 {
 	std::optional<uint32_t> graphicsFamily;
+	std::optional<uint32_t> presentFamily;
 
 	bool isComplete() {
-		return graphicsFamily.has_value();
+		return graphicsFamily.has_value() && presentFamily.has_value();
 	}
+};
+
+struct SwapChainSupportDetails
+{
+	VkSurfaceCapabilitiesKHR capabilities;
+	std::vector<VkSurfaceFormatKHR> formats;
+	std::vector<VkPresentModeKHR> presentModes;
 };
 
 class TriangleApp
@@ -51,7 +63,6 @@ private:
 	void MainLoop();
 	void CleanUp();
 
-	bool CheckValidationLayerSupport();
 	std::vector<const char*> GetRequiredExtensions();
 	static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
 		VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -63,15 +74,33 @@ private:
 
 	void SetupDebugMessenger();
 	void CreateInstance();
-	QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device);
-	bool IsDeviceSuitable(VkPhysicalDevice device);
+	void CreateSurface();
 	void PickPhysicalDevice();
 	void CreateLogicalDevice();
+	void CreateSwapChain();
+	void CreateImageViews();
+	void CreateGraphicsPipeline();
+
+	QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device);
+	SwapChainSupportDetails QuerySwapChainSupport(VkPhysicalDevice device);
+	VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
+	VkPresentModeKHR ChooseSwapPresentMode(const std::vector<VkPresentModeKHR> availablePresentModes);
+	VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
+	bool CheckValidationLayerSupport();
+	bool CheckDeviceExtensionSupport(VkPhysicalDevice device);
+	bool IsDeviceSuitable(VkPhysicalDevice device);
 
 	GLFWwindow* window;
 	VkInstance instance;
 	VkDevice device;
 	VkQueue graphicsQueue;
+	VkQueue presentQueue;
+	VkSurfaceKHR surface;
+	VkSwapchainKHR swapChain;
+	std::vector<VkImage> swapChainImages;
+	std::vector<VkImageView> swapChainImageViews;
+	VkFormat swapChainImageFormat;
+	VkExtent2D swapChainExtent;
 
 	VkDebugUtilsMessengerEXT debugMessenger;
 	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
