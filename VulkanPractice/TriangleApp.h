@@ -8,6 +8,7 @@
 #include <functional>
 #include <cstdlib>
 #include <optional>
+#include "Vertex.h"
 
 const int WIDTH = 1280;
 const int HEIGHT = 720;
@@ -45,6 +46,13 @@ struct SwapChainSupportDetails
 	VkSurfaceCapabilitiesKHR capabilities;
 	std::vector<VkSurfaceFormatKHR> formats;
 	std::vector<VkPresentModeKHR> presentModes;
+};
+
+
+const std::vector<Vertex> vertices = {
+	{{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+	{{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
+	{{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
 };
 
 class TriangleApp
@@ -89,6 +97,7 @@ private:
 	void CreateGraphicsPipeline();
 	void CreateFrameBuffers();
 	void CreateCommandPool();
+	void CreateVertexBuffers();
 	void CreateCommandBuffers();
 	void CreateSyncObjects();
 
@@ -101,6 +110,7 @@ private:
 	bool CheckDeviceExtensionSupport(VkPhysicalDevice device);
 	bool IsDeviceSuitable(VkPhysicalDevice device);
 	VkShaderModule CreateShaderModule(const std::vector<char>& code);
+	uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
 	GLFWwindow* window;
 	VkInstance instance;
@@ -125,6 +135,9 @@ private:
 	std::vector<VkSemaphore> renderFinishedSemaphores;
 	std::vector<VkFence> inFlightFences;
 	bool framebufferResized = false;
+
+	VkBuffer vertexBuffer;
+	VkDeviceMemory vertexBufferMemory;
 
 	VkDebugUtilsMessengerEXT debugMessenger;
 	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
