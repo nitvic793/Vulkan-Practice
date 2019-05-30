@@ -65,6 +65,8 @@ private:
 	void CleanUp();
 
 	void DrawFrame();
+	void CleanupSwapChain();
+	void RecreateSwapChain();
 
 	std::vector<const char*> GetRequiredExtensions();
 	static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
@@ -73,6 +75,7 @@ private:
 		const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
 		void* pUserData
 	);
+	static void FramebufferResizeCallback(GLFWwindow* window, int width, int height);
 	void PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
 
 	void SetupDebugMessenger();
@@ -121,6 +124,7 @@ private:
 	std::vector<VkSemaphore> imageAvailableSemaphores;
 	std::vector<VkSemaphore> renderFinishedSemaphores;
 	std::vector<VkFence> inFlightFences;
+	bool framebufferResized = false;
 
 	VkDebugUtilsMessengerEXT debugMessenger;
 	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
