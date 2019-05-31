@@ -80,6 +80,7 @@ private:
 	void DrawFrame();
 	void CleanupSwapChain();
 	void RecreateSwapChain();
+	void UpdateUniformBuffer(uint32_t currentImage);
 
 	std::vector<const char*> GetRequiredExtensions();
 	static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
@@ -104,9 +105,13 @@ private:
 	void CreateCommandPool();
 	void CreateVertexBuffers();
 	void CreateIndexBuffer();
+	void CreateUniformBuffer();
+	void CreateDescriptorPool();
+	void CreateDescriptorSets();
 	void CreateCommandBuffers();
 	void CreateSyncObjects();
 
+	void CreateDescriptorSetLayout();
 	void CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
 	void CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 	QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device);
@@ -149,6 +154,13 @@ private:
 
 	VkBuffer indexBuffer;
 	VkDeviceMemory indexBufferMemory;
+
+	std::vector<VkBuffer> uniformBuffers;
+	std::vector<VkDeviceMemory> uniformBuffersMemory;
+
+	VkDescriptorSetLayout descriptorSetLayout;
+	VkDescriptorPool descriptorPool;
+	std::vector<VkDescriptorSet> descriptorSets;
 
 	VkDebugUtilsMessengerEXT debugMessenger;
 	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
