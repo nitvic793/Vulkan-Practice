@@ -31,7 +31,7 @@ const bool enableValidationLayers = true;
 VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger);
 void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator);
 
-struct QueueFamilyIndices 
+struct QueueFamilyIndices
 {
 	std::optional<uint32_t> graphicsFamily;
 	std::optional<uint32_t> presentFamily;
@@ -50,9 +50,14 @@ struct SwapChainSupportDetails
 
 
 const std::vector<Vertex> vertices = {
-	{{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-	{{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
-	{{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
+	{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+	{{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+	{{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
+	{{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}
+};
+
+const std::vector<uint32_t> indices = {
+	0,1,2,2,3,0
 };
 
 class TriangleApp
@@ -98,6 +103,7 @@ private:
 	void CreateFrameBuffers();
 	void CreateCommandPool();
 	void CreateVertexBuffers();
+	void CreateIndexBuffer();
 	void CreateCommandBuffers();
 	void CreateSyncObjects();
 
@@ -140,6 +146,9 @@ private:
 
 	VkBuffer vertexBuffer;
 	VkDeviceMemory vertexBufferMemory;
+
+	VkBuffer indexBuffer;
+	VkDeviceMemory indexBufferMemory;
 
 	VkDebugUtilsMessengerEXT debugMessenger;
 	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
