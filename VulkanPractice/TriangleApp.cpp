@@ -63,12 +63,18 @@ void TriangleApp::InitWindow()
 
 void TriangleApp::MainLoop()
 {
+	using ms = std::chrono::duration<float, std::milli>;
+	
 	while (!glfwWindowShouldClose(window))
 	{
+		auto start = std::chrono::high_resolution_clock::now();
 		glfwPollEvents();
 		DrawFrame();
+		auto end = std::chrono::high_resolution_clock::now();
+		auto frameTime = std::chrono::duration_cast<ms>(end - start).count();
+		glfwSetWindowTitle(window, (std::to_string(frameTime) + "ms").c_str());
 	}
-
+	
 	vkDeviceWaitIdle(device);
 }
 
