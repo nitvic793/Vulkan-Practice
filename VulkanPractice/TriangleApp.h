@@ -70,21 +70,11 @@ private:
 	void MainLoop();
 	void CleanUp();
 
+	//Loop Logic
 	void DrawFrame();
-	void CleanupSwapChain();
-	void RecreateSwapChain();
 	void UpdateUniformBuffer(uint32_t currentImage);
 
-	std::vector<const char*> GetRequiredExtensions();
-	static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
-		VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-		VkDebugUtilsMessageTypeFlagsEXT messageType,
-		const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-		void* pUserData
-	);
-	static void FramebufferResizeCallback(GLFWwindow* window, int width, int height);
-	void PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
-
+	//Vulkan Init
 	void SetupDebugMessenger();
 	void CreateInstance();
 	void CreateSurface();
@@ -96,6 +86,7 @@ private:
 	void CreateGraphicsPipeline();
 	void CreateFrameBuffers();
 	void CreateCommandPool();
+	void CreateColorResources();
 	void CreateDepthResources();
 	void CreateTextureImage();
 	void CreateTextureImageView();
@@ -109,7 +100,21 @@ private:
 	void CreateCommandBuffers();
 	void CreateSyncObjects();
 
-	void CreateImage(uint32_t width, uint32_t height, uint32_t mipLevels, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
+	//Utility Functions
+	void CleanupSwapChain();
+	void RecreateSwapChain();
+	std::vector<const char*> GetRequiredExtensions();
+	static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
+		VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+		VkDebugUtilsMessageTypeFlagsEXT messageType,
+		const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+		void* pUserData
+	);
+	static void FramebufferResizeCallback(GLFWwindow* window, int width, int height);
+	void PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
+	void CreateImage(uint32_t width, uint32_t height, uint32_t mipLevels, VkSampleCountFlagBits numSamples,
+		VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, 
+		VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
 	void CreateDescriptorSetLayout();
 	void CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
 	void CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
@@ -134,59 +139,74 @@ private:
 	void GenerateMipMaps(VkImage image, VkFormat imageFormat, int32_t texWidth, int32_t texHeight, uint32_t mipLevels);
 	VkSampleCountFlagBits GetMaxUsableSampleCount();
 
+	//Window, Vulkan
 	GLFWwindow* window;
 	VkInstance instance;
 	VkDevice device;
-	VkQueue graphicsQueue;
-	VkQueue presentQueue;
 	VkSurfaceKHR surface;
+	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
+
+	//SwapChain
 	VkSwapchainKHR swapChain;
 	std::vector<VkImage> swapChainImages;
 	std::vector<VkImageView> swapChainImageViews;
 	VkFormat swapChainImageFormat;
 	VkExtent2D swapChainExtent;
+	std::vector<VkFramebuffer> swapChainFramebuffers;
+
+	//Vulkan GFX
 	VkRenderPass renderPass;
 	VkPipelineLayout pipelineLayout;
 	VkPipeline graphicsPipeline;
-	std::vector<VkFramebuffer> swapChainFramebuffers;
 	VkCommandPool commandPool;
 	std::vector<VkCommandBuffer> commandBuffers;
+	VkQueue graphicsQueue;
+	VkQueue presentQueue;
 
+	//Texture
 	uint32_t mipLevels;
 	VkImage textureImage;
 	VkDeviceMemory textureImageMemory;
 	VkImageView textureImageView;
 	VkSampler textureSampler;
 
+	//Depth Buffer
 	VkImage depthImage;
 	VkDeviceMemory depthImageMemory;
 	VkImageView depthImageView;
 
+	//Synchronization
 	size_t currentFrame = 0;
 	std::vector<VkSemaphore> imageAvailableSemaphores;
 	std::vector<VkSemaphore> renderFinishedSemaphores;
 	std::vector<VkFence> inFlightFences;
 	bool framebufferResized = false;
 
+	//Mesh
 	std::vector<Vertex> vertices;
 	std::vector<uint32_t> indices;
 	VkBuffer vertexBuffer;
 	VkDeviceMemory vertexBufferMemory;
-
 	VkBuffer indexBuffer;
 	VkDeviceMemory indexBufferMemory;
 
+	//UBO
 	std::vector<VkBuffer> uniformBuffers;
 	std::vector<VkDeviceMemory> uniformBuffersMemory;
 
+	//Descriptors
 	VkDescriptorSetLayout descriptorSetLayout;
 	VkDescriptorPool descriptorPool;
 	std::vector<VkDescriptorSet> descriptorSets;
 
+	//Debug
 	VkDebugUtilsMessengerEXT debugMessenger;
-	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
 
+	//MSAA
 	VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
+	VkImage colorImage;
+	VkDeviceMemory colorImageMemory;
+	VkImageView colorImageView;
 };
 
 int RunApp();
