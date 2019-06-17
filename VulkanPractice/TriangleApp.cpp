@@ -14,7 +14,8 @@
 #include <algorithm>
 #include "Utils.h"
 #include "UniformBuffer.h"
-
+#include <iomanip> // setprecision
+#include <sstream>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
@@ -65,15 +66,38 @@ void TriangleApp::InitWindow()
 void TriangleApp::MainLoop()
 {
 	using ms = std::chrono::duration<float, std::milli>;
-	
+	using seconds = std::chrono::duration<float>;
+
+	double timer = 0.0;
+	uint64_t count = 0;
+	double fps = 0.0;
+	double avgFps = 0.0;
+
 	while (!glfwWindowShouldClose(window))
 	{
 		auto start = std::chrono::high_resolution_clock::now();
 		glfwPollEvents();
 		DrawFrame();
 		auto end = std::chrono::high_resolution_clock::now();
+
 		auto frameTime = std::chrono::duration_cast<ms>(end - start).count();
-		glfwSetWindowTitle(window, (std::to_string(frameTime) + "ms").c_str());
+		fps += 1000.f / frameTime;
+		timer += std::chrono::duration_cast<seconds>(end - start).count();
+		count++;
+		if (timer > 0.2f) //Update average FPS every 1/5th of a second
+		{
+			avgFps = fps / (double)count;
+			//Reset timer variables
+			count = 0;
+			fps = 0.0;
+			timer = 0.0;
+		}
+
+		std::stringstream stream;
+		stream << std::fixed << std::setprecision(2) << avgFps;
+		std::string fpsString = stream.str();
+
+		glfwSetWindowTitle(window, ("Vulkan App | " + fpsString + " FPS").c_str());
 	}
 	
 	vkDeviceWaitIdle(device);
