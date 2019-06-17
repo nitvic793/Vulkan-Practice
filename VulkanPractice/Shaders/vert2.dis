@@ -1,0 +1,90 @@
+; SPIR-V
+; Version: 1.0
+; Generator: Khronos Glslang Reference Front End; 7
+; Bound: 107
+; Schema: 0
+               OpCapability Shader
+          %1 = OpExtInstImport "GLSL.std.450"
+               OpMemoryModel Logical GLSL450
+               OpEntryPoint Vertex %main "main" %input_Position %input_Color %input_UV %_entryPointOutput_Position %_entryPointOutput_Color %_entryPointOutput_UV
+               OpSource HLSL 500
+               OpName %main "main"
+               OpName %ExternalData "ExternalData"
+               OpMemberName %ExternalData 0 "model"
+               OpMemberName %ExternalData 1 "view"
+               OpMemberName %ExternalData 2 "proj"
+               OpName %_ ""
+               OpName %input_Position "input.Position"
+               OpName %input_Color "input.Color"
+               OpName %input_UV "input.UV"
+               OpName %_entryPointOutput_Position "@entryPointOutput.Position"
+               OpName %_entryPointOutput_Color "@entryPointOutput.Color"
+               OpName %_entryPointOutput_UV "@entryPointOutput.UV"
+               OpMemberDecorate %ExternalData 0 RowMajor
+               OpMemberDecorate %ExternalData 0 Offset 0
+               OpMemberDecorate %ExternalData 0 MatrixStride 16
+               OpMemberDecorate %ExternalData 1 RowMajor
+               OpMemberDecorate %ExternalData 1 Offset 64
+               OpMemberDecorate %ExternalData 1 MatrixStride 16
+               OpMemberDecorate %ExternalData 2 RowMajor
+               OpMemberDecorate %ExternalData 2 Offset 128
+               OpMemberDecorate %ExternalData 2 MatrixStride 16
+               OpDecorate %ExternalData Block
+               OpDecorate %_ DescriptorSet 0
+               OpDecorate %_ Binding 0
+               OpDecorate %input_Position Location 0
+               OpDecorate %input_Color Location 1
+               OpDecorate %input_UV Location 2
+               OpDecorate %_entryPointOutput_Position BuiltIn Position
+               OpDecorate %_entryPointOutput_Color Location 0
+               OpDecorate %_entryPointOutput_UV Location 1
+       %void = OpTypeVoid
+          %3 = OpTypeFunction %void
+      %float = OpTypeFloat 32
+    %v3float = OpTypeVector %float 3
+    %v2float = OpTypeVector %float 2
+    %v4float = OpTypeVector %float 4
+%mat4v4float = OpTypeMatrix %v4float 4
+%ExternalData = OpTypeStruct %mat4v4float %mat4v4float %mat4v4float
+%_ptr_Uniform_ExternalData = OpTypePointer Uniform %ExternalData
+          %_ = OpVariable %_ptr_Uniform_ExternalData Uniform
+        %int = OpTypeInt 32 1
+      %int_2 = OpConstant %int 2
+%_ptr_Uniform_mat4v4float = OpTypePointer Uniform %mat4v4float
+      %int_0 = OpConstant %int 0
+      %int_1 = OpConstant %int 1
+    %float_0 = OpConstant %float 0
+%_ptr_Input_v3float = OpTypePointer Input %v3float
+%input_Position = OpVariable %_ptr_Input_v3float Input
+%input_Color = OpVariable %_ptr_Input_v3float Input
+%_ptr_Input_v2float = OpTypePointer Input %v2float
+   %input_UV = OpVariable %_ptr_Input_v2float Input
+%_ptr_Output_v4float = OpTypePointer Output %v4float
+%_entryPointOutput_Position = OpVariable %_ptr_Output_v4float Output
+%_ptr_Output_v3float = OpTypePointer Output %v3float
+%_entryPointOutput_Color = OpVariable %_ptr_Output_v3float Output
+%_ptr_Output_v2float = OpTypePointer Output %v2float
+%_entryPointOutput_UV = OpVariable %_ptr_Output_v2float Output
+       %main = OpFunction %void None %3
+          %5 = OpLabel
+         %63 = OpLoad %v3float %input_Position
+         %66 = OpLoad %v3float %input_Color
+         %70 = OpLoad %v2float %input_UV
+         %91 = OpAccessChain %_ptr_Uniform_mat4v4float %_ %int_2
+         %92 = OpLoad %mat4v4float %91
+         %93 = OpAccessChain %_ptr_Uniform_mat4v4float %_ %int_0
+         %94 = OpLoad %mat4v4float %93
+         %95 = OpAccessChain %_ptr_Uniform_mat4v4float %_ %int_1
+         %96 = OpLoad %mat4v4float %95
+         %97 = OpMatrixTimesMatrix %mat4v4float %94 %96
+         %98 = OpMatrixTimesMatrix %mat4v4float %92 %97
+        %102 = OpCompositeExtract %float %63 0
+        %103 = OpCompositeExtract %float %63 1
+        %104 = OpCompositeExtract %float %63 2
+        %105 = OpCompositeConstruct %v4float %102 %103 %104 %float_0
+        %106 = OpMatrixTimesVector %v4float %98 %105
+               OpStore %_entryPointOutput_Position %106
+               OpStore %_entryPointOutput_Color %66
+               OpStore %_entryPointOutput_UV %70
+               OpReturn
+               OpFunctionEnd
