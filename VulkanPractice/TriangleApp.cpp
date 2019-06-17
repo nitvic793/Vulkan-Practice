@@ -1,5 +1,6 @@
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -241,6 +242,13 @@ void TriangleApp::RecreateSwapChain()
 	CreateCommandBuffers();
 }
 
+void TransposeUBO(UniformBufferObject& ubo)
+{
+	ubo.model = glm::transpose(ubo.model);
+	ubo.view = glm::transpose(ubo.view);
+	ubo.proj = glm::transpose(ubo.proj);
+}
+
 void TriangleApp::UpdateUniformBuffer(uint32_t currentImage)
 {
 	const float speed = 0.2f;
@@ -249,10 +257,13 @@ void TriangleApp::UpdateUniformBuffer(uint32_t currentImage)
 	auto time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
 	UniformBufferObject ubo = {};
-	ubo.model = glm::rotate(glm::mat4(1.f), time * glm::radians(90.f) * speed, glm::vec3(0.f, 0.f, 1.f));
+	auto model = glm::mat4(1);
+	ubo.model = glm::rotate(model, time * glm::radians(90.f) * speed, glm::vec3(0.f, 0.f, 1.f));
 	ubo.view = glm::lookAt(glm::vec3(2.f, 2.f, 2.f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 0.f, 1.f));
 	ubo.proj = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10.f);
 	ubo.proj[1][1] *= -1; // Flip y for Vulkan (OpenGL is opposite)
+
+	TransposeUBO(ubo);
 
 	void* data;
 	vkMapMemory(device, uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);
