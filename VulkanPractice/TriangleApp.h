@@ -9,14 +9,15 @@
 #include <cstdlib>
 #include <optional>
 
-
 #include "Vertex.h"
+#include "Camera.h"
 
 const int WIDTH = 1280;
 const int HEIGHT = 720;
-const std::string MODEL_PATH = "models/chalet.obj";
+const std::string MODEL_PATH = "models/cone.obj";
 const std::string TEXTURE_PATH = "textures/chalet.jpg";
 const int MAX_FRAMES_IN_FLIGHT = 2;
+const int MAX_ENTITIES = 2;
 
 const std::vector<const char*> validationLayers = {
 	"VK_LAYER_KHRONOS_validation"
@@ -60,6 +61,7 @@ public:
 	{
 		InitWindow();
 		InitVulkan();
+		InitResources();
 		MainLoop();
 		CleanUp();
 	}
@@ -67,6 +69,7 @@ public:
 private:
 	void InitVulkan();
 	void InitWindow();
+	void InitResources();
 	void MainLoop();
 	void CleanUp();
 
@@ -208,6 +211,7 @@ private:
 	VkImage colorImage;
 	VkDeviceMemory colorImageMemory;
 	VkImageView colorImageView;
+	Camera camera;
 };
 
 int RunApp();

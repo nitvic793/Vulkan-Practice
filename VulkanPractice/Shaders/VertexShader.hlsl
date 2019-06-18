@@ -1,5 +1,5 @@
 
-cbuffer ExternalData : register(b0)
+cbuffer ExternalData : register(b0) // Binding 0
 {
 	matrix model;
 	matrix view;
@@ -18,8 +18,7 @@ struct PixelInput
 	float4 Position : SV_POSITION; // gl_Position
 	float3 Color	: COLOR; //Location 0
 	float2 UV		: TEXCOORD0; //Location 1
-};
-
+}; 
 
 PixelInput main( VertexInput input)
 {

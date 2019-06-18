@@ -63,6 +63,11 @@ void TriangleApp::InitWindow()
 	glfwSetFramebufferSizeCallback(window, FramebufferResizeCallback);
 }
 
+void TriangleApp::InitResources()
+{
+	camera = Camera(45.0f, swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10.f);
+}
+
 void TriangleApp::MainLoop()
 {
 	using ms = std::chrono::duration<float, std::milli>;
@@ -282,12 +287,12 @@ void TriangleApp::UpdateUniformBuffer(uint32_t currentImage)
 	static auto startTime = std::chrono::high_resolution_clock::now();
 	auto currentTime = std::chrono::high_resolution_clock::now();
 	auto time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-
+	camera.Position = glm::vec3(2.f, -0.1f, 2.f);
 	UniformBufferObject ubo = {};
 	auto model = glm::mat4(1);
-	ubo.model = glm::rotate(model, time * glm::radians(90.f) * speed, glm::vec3(0.f, 0.f, 1.f));
-	ubo.view = glm::lookAt(glm::vec3(2.f, 2.f, 2.f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 0.f, 1.f));
-	ubo.proj = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10.f);
+	ubo.model = glm::rotate(model, time * glm::radians(90.f) * speed, glm::vec3(0.f, 1.f, 0.f));
+	ubo.view = camera.GetView();
+	ubo.proj = camera.GetProjection();
 	ubo.proj[1][1] *= -1; // Flip y for Vulkan (OpenGL is opposite)
 
 	TransposeUBO(ubo);
