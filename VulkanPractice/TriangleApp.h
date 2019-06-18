@@ -73,6 +73,7 @@ private:
 	//Loop Logic
 	void DrawFrame();
 	void UpdateUniformBuffer(uint32_t currentImage);
+	void RecordCommandBuffer(uint32_t imageIndex);
 
 	//Vulkan Init
 	void SetupDebugMessenger();

@@ -8,16 +8,16 @@ cbuffer ExternalData : register(b0)
 
 struct VertexInput
 {
-	float3 Position : POSITION;
-	float3 Color	: COLOR;
-	float2 UV		: TEXCOORD0;
+	float3 Position : POSITION; // Location 0
+	float3 Color	: COLOR; // Location 1
+	float2 UV		: TEXCOORD0; // Location 2
 };
 
 struct PixelInput
 {
-	float4 Position : SV_POSITION;
-	float3 Color	: COLOR;
-	float2 UV		: TEXCOORD0;
+	float4 Position : SV_POSITION; // gl_Position
+	float3 Color	: COLOR; //Location 0
+	float2 UV		: TEXCOORD0; //Location 1
 };
 
 

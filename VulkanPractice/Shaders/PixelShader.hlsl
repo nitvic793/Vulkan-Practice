@@ -7,7 +7,7 @@ struct PixelInput
 	float2 UV					: TEXCOORD0;
 };
 
-Texture2D		Texture			: register(t1);
+Texture2D		Texture			: register(t1); // Binding 1 (Combined Texture Sampler)
 SamplerState	BasicSampler	: register(s1);
 
 float4 main(PixelInput input)	: SV_TARGET
