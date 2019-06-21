@@ -198,6 +198,9 @@ private:
 	std::vector<VkBuffer> uniformBuffers;
 	std::vector<VkDeviceMemory> uniformBuffersMemory;
 
+	std::vector<VkBuffer> dynamicUniformBuffers;
+	std::vector<VkDeviceMemory> dynamicUniformBuffersMemory;
+
 	//Descriptors
 	VkDescriptorSetLayout descriptorSetLayout;
 	VkDescriptorPool descriptorPool;

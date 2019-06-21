@@ -9,3 +9,7 @@ struct UniformBufferObject
 	alignas(16) glm::mat4 proj;
 };
 
+struct PerObjectBuffer
+{
+	alignas(16) glm::mat4 model;
+};

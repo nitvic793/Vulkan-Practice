@@ -1,10 +1,16 @@
 
-cbuffer ExternalData : register(b0) // Binding 0
+cbuffer PerFrame : register(b0) // Binding 0
 {
 	matrix model;
 	matrix view;
 	matrix proj;
 };
+
+[[vk::binding(2)]]
+cbuffer PerObject : register(b1)
+{
+	matrix world;
+}
 
 struct VertexInput
 {
@@ -23,7 +29,7 @@ struct PixelInput
 PixelInput main( VertexInput input)
 {
 	PixelInput output;
-	float4x4 worldViewProj = mul(mul(model, view), proj);
+	float4x4 worldViewProj = mul(mul(world, view), proj);
 	output.Position = mul(float4(input.Position, 1.f), worldViewProj);
 	output.UV = input.UV;
 	output.Color = input.Color;
