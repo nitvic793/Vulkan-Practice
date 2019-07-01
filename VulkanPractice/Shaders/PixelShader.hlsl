@@ -4,6 +4,7 @@ struct PixelInput
 {
 	float4 Position				: SV_POSITION;
 	float3 Color				: COLOR;
+	float3 Normal				: NORMAL;
 	float2 UV					: TEXCOORD0;
 }; 
  

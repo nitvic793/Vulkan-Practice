@@ -198,6 +198,9 @@ private:
 	std::vector<VkBuffer> uniformBuffers;
 	std::vector<VkDeviceMemory> uniformBuffersMemory;
 
+	std::vector<VkBuffer> lightBuffers;
+	std::vector<VkDeviceMemory> lightBuffersMemory;
+
 	std::vector<VkBuffer> dynamicUniformBuffers;
 	std::vector<VkDeviceMemory> dynamicUniformBuffersMemory;
 

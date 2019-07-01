@@ -16,13 +16,15 @@ struct VertexInput
 {
 	float3 Position : POSITION; // Location 0
 	float3 Color	: COLOR; // Location 1
-	float2 UV		: TEXCOORD0; // Location 2
+	float3 Normal	: NORMAL; // Location 2
+	float2 UV		: TEXCOORD0; // Location 3
 };
 
 struct PixelInput
 {
 	float4 Position : SV_POSITION; // gl_Position
 	float3 Color	: COLOR; //Location 0
+	float3 Normal	: NORMAL; 
 	float2 UV		: TEXCOORD0; //Location 1
 }; 
 
@@ -33,5 +35,6 @@ PixelInput main( VertexInput input)
 	output.Position = mul(float4(input.Position, 1.f), worldViewProj);
 	output.UV = input.UV;
 	output.Color = input.Color;
+	output.Normal = normalize(input.Normal);
 	return output;
 }

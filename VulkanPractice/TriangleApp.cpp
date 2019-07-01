@@ -243,8 +243,10 @@ void TriangleApp::CleanupSwapChain()
 	{
 		vkDestroyBuffer(device, uniformBuffers[i], nullptr);
 		vkDestroyBuffer(device, dynamicUniformBuffers[i], nullptr);
+		vkDestroyBuffer(device, lightBuffers[i], nullptr);
 		vkFreeMemory(device, uniformBuffersMemory[i], nullptr);
 		vkFreeMemory(device, dynamicUniformBuffersMemory[i], nullptr);
+		vkFreeMemory(device, lightBuffersMemory[i], nullptr);
 	}
 
 	vkDestroyDescriptorPool(device, descriptorPool, nullptr);
@@ -293,7 +295,7 @@ void TriangleApp::UpdateUniformBuffer(uint32_t currentImage)
 
 	UniformBufferObject ubo = {};
 	auto model = glm::mat4(1);
-	PerObjectBuffer perObject2 = { glm::transpose(glm::translate(model, glm::vec3(-2, 0, 0))) };
+	PerObjectBuffer perObject2 = { glm::transpose(glm::translate(model, glm::vec3(2, 0, 0))) };
 	ubo.model = glm::rotate(model, time * glm::radians(90.f) * speed, glm::vec3(0.f, 1.f, 0.f));
 	PerObjectBuffer perObject = { glm::transpose(ubo.model) };
 	ubo.view = camera.GetView();
@@ -307,8 +309,6 @@ void TriangleApp::UpdateUniformBuffer(uint32_t currentImage)
 	memcpy(data, &ubo, sizeof(ubo));
 	vkUnmapMemory(device, uniformBuffersMemory[currentImage]);
 
-	
-	
 	VkPhysicalDeviceProperties properties;
 	vkGetPhysicalDeviceProperties(physicalDevice, &properties);
 	VkDeviceSize bufferSize = sizeof(PerObjectBuffer);
@@ -1650,6 +1650,16 @@ void TriangleApp::LoadModel()
 				1.f - attrib.texcoords[2 * index.texcoord_index + 1]
 			};
 
+			if (attrib.normals.size() > 0)
+			{
+				vertex.normal =
+				{
+					attrib.normals[3 * index.normal_index + 0],
+					attrib.normals[3 * index.normal_index + 1],
+					attrib.normals[3 * index.normal_index + 2]
+				};
+			}
+
 			vertex.color = { 1.0f, 1.0f, 1.0f };
 
 			if (uniqueVertices.count(vertex) == 0)
@@ -1706,31 +1716,47 @@ void TriangleApp::CreateIndexBuffer()
 
 void TriangleApp::CreateUniformBuffer()
 {
-	VkDeviceSize bufferSize = sizeof(UniformBufferObject);
-	uniformBuffers.resize(swapChainImages.size());
-	uniformBuffersMemory.resize(swapChainImages.size());
+	auto bufferCount = swapChainImages.size();
+	VkPhysicalDeviceProperties properties = {};
+	vkGetPhysicalDeviceProperties(physicalDevice, &properties);
 
-	for (size_t i = 0; i < swapChainImages.size(); i++)
+	VkDeviceSize bufferSize = sizeof(UniformBufferObject);
+	uniformBuffers.resize(bufferCount);
+	uniformBuffersMemory.resize(bufferCount);
+
+	for (size_t i = 0; i < bufferCount; i++)
 	{
 		CreateBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i], uniformBuffersMemory[i]);
 	}
 
-	VkPhysicalDeviceProperties properties = {};
+	
 	bufferSize = sizeof(PerObjectBuffer);
-	dynamicUniformBuffers.resize(swapChainImages.size());
-	dynamicUniformBuffersMemory.resize(swapChainImages.size());
-	vkGetPhysicalDeviceProperties(physicalDevice, &properties);
+	dynamicUniformBuffers.resize(bufferCount);
+	dynamicUniformBuffersMemory.resize(bufferCount);
+	
 	if (properties.limits.minUniformBufferOffsetAlignment)
 	{
 		//Ensure Buffer Size Alignment
 		bufferSize = (bufferSize + properties.limits.minUniformBufferOffsetAlignment - 1) & ~(properties.limits.minUniformBufferOffsetAlignment - 1);
 	}
 
-	for (size_t i = 0; i < swapChainImages.size(); ++i)
+	for (size_t i = 0; i < bufferCount; ++i)
 	{
 		CreateBuffer(bufferSize * MAX_ENTITIES,
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 			dynamicUniformBuffers[i], dynamicUniformBuffersMemory[i]);
+	}
+
+	bufferSize = sizeof(LightBuffer);
+	bufferSize = (bufferSize + properties.limits.minUniformBufferOffsetAlignment - 1) & ~(properties.limits.minUniformBufferOffsetAlignment - 1);
+	lightBuffers.resize(bufferCount);
+	lightBuffersMemory.resize(bufferCount);
+
+	for (size_t i = 0; i < bufferCount; ++i)
+	{
+		CreateBuffer(bufferSize,
+			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			lightBuffers[i], lightBuffersMemory[i]);
 	}
 }
 
