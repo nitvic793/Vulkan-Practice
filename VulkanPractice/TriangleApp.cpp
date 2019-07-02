@@ -33,7 +33,7 @@ void TriangleApp::InitVulkan()
 	CreateRenderPass();
 	CreateDescriptorSetLayout();
 	CreateGraphicsPipeline();
-	
+
 	CreateCommandPool();
 	CreateColorResources();
 	CreateDepthResources();
@@ -104,7 +104,7 @@ void TriangleApp::MainLoop()
 
 		glfwSetWindowTitle(window, ("Vulkan App | " + fpsString + " FPS").c_str());
 	}
-	
+
 	vkDeviceWaitIdle(device);
 }
 
@@ -302,7 +302,7 @@ void TriangleApp::UpdateUniformBuffer(uint32_t currentImage)
 	UniformBufferObject ubo = {};
 	auto model = glm::mat4(1);
 
-	PerObjectBuffer perObject2 = { glm::transpose(glm::translate(model, glm::vec3(2, 0, 0))) };
+	PerObjectBuffer perObject2 = { glm::transpose(glm::translate(model, glm::vec3(2, sin(time * 2.f) * speed, 0))) };
 	ubo.model = glm::rotate(model, time * glm::radians(90.f) * speed, glm::vec3(0.f, 1.f, 0.f));
 
 	PerObjectBuffer perObject = { glm::transpose(ubo.model) };
@@ -317,7 +317,7 @@ void TriangleApp::UpdateUniformBuffer(uint32_t currentImage)
 	memcpy(data, &ubo, sizeof(ubo));
 	vkUnmapMemory(device, uniformBuffersMemory[currentImage]);
 
-	
+
 	VkDeviceSize bufferSize = sizeof(PerObjectBuffer);
 	if (properties.limits.minUniformBufferOffsetAlignment)
 	{
@@ -351,7 +351,7 @@ void TriangleApp::RecordCommandBuffer(uint32_t imageIndex)
 		throw std::runtime_error("Failed to begin recording command buffer.");
 	}
 
-	VkRenderPassBeginInfo renderPassInfo = {}; 
+	VkRenderPassBeginInfo renderPassInfo = {};
 	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 	renderPassInfo.renderPass = renderPass;
 	renderPassInfo.framebuffer = swapChainFramebuffers[imageIndex];
@@ -933,7 +933,7 @@ void TriangleApp::TransitionImageLayout(VkImage image, VkFormat format, VkImageL
 		sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
 		destinationStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
 	}
-	else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) 
+	else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
 	{
 		barrier.srcAccessMask = 0;
 		barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
@@ -1037,7 +1037,7 @@ void TriangleApp::GenerateMipMaps(VkImage image, VkFormat imageFormat, int32_t t
 	// Check if image format supports linear blitting
 	VkFormatProperties formatProperties;
 	vkGetPhysicalDeviceFormatProperties(physicalDevice, imageFormat, &formatProperties);
-	if (!(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT)) 
+	if (!(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT))
 	{
 		throw std::runtime_error("Texture image format does not support linear blitting.");
 	}
@@ -1056,7 +1056,7 @@ void TriangleApp::GenerateMipMaps(VkImage image, VkFormat imageFormat, int32_t t
 	int32_t mipWidth = texWidth;
 	int32_t mipHeight = texHeight;
 
-	for (uint32_t i = 1; i < mipLevels; i++) 
+	for (uint32_t i = 1; i < mipLevels; i++)
 	{
 		barrier.subresourceRange.baseMipLevel = i - 1;
 		barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
@@ -1514,7 +1514,7 @@ void TriangleApp::CreateFrameBuffers()
 
 	for (size_t i = 0; i < swapChainImageViews.size(); ++i)
 	{
-		std::array<VkImageView, 3> attachments = 
+		std::array<VkImageView, 3> attachments =
 		{
 			colorImageView,
 			depthImageView,
@@ -1565,7 +1565,7 @@ void TriangleApp::CreateDepthResources()
 {
 	auto depthFormat = FindDepthFormat();
 	CreateImage(swapChainExtent.width, swapChainExtent.height, 1, msaaSamples,
-		depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, 
+		depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, depthImage, depthImageMemory);
 	depthImageView = CreateImageView(depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
 	TransitionImageLayout(depthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 1);
@@ -1596,8 +1596,8 @@ void TriangleApp::CreateTextureImage()
 	stbi_image_free(pixels);
 
 	CreateImage(texWidth, texHeight, mipLevels, VK_SAMPLE_COUNT_1_BIT,
-		format, VK_IMAGE_TILING_OPTIMAL, 
-		VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, 
+		format, VK_IMAGE_TILING_OPTIMAL,
+		VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, textureImage, textureImageMemory);
 
 	TransitionImageLayout(textureImage, format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, mipLevels);
@@ -1646,26 +1646,26 @@ void TriangleApp::LoadModel()
 	std::vector<tinyobj::material_t> materials;
 	std::string warn, err;
 
-	if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &err, MODEL_PATH.c_str())) 
+	if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &err, MODEL_PATH.c_str()))
 	{
 		throw std::runtime_error(err);
 	}
 
 	std::unordered_map<Vertex, uint32_t> uniqueVertices = {};
 
-	for (const auto& shape : shapes) 
+	for (const auto& shape : shapes)
 	{
-		for (const auto& index : shape.mesh.indices) 
+		for (const auto& index : shape.mesh.indices)
 		{
 			Vertex vertex = {};
-			vertex.position = 
+			vertex.position =
 			{
 				attrib.vertices[3 * index.vertex_index + 0],
 				attrib.vertices[3 * index.vertex_index + 1],
 				attrib.vertices[3 * index.vertex_index + 2]
 			};
 
-			vertex.texCoord = 
+			vertex.texCoord =
 			{
 				attrib.texcoords[2 * index.texcoord_index + 0],
 				1.f - attrib.texcoords[2 * index.texcoord_index + 1]
@@ -1750,11 +1750,11 @@ void TriangleApp::CreateUniformBuffer()
 		CreateBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i], uniformBuffersMemory[i]);
 	}
 
-	
+
 	bufferSize = sizeof(PerObjectBuffer);
 	dynamicUniformBuffers.resize(bufferCount);
 	dynamicUniformBuffersMemory.resize(bufferCount);
-	
+
 	if (properties.limits.minUniformBufferOffsetAlignment)
 	{
 		//Ensure Buffer Size Alignment
@@ -1887,7 +1887,7 @@ void TriangleApp::CreateCommandBuffers()
 	VkCommandBufferAllocateInfo allocInfo = {};
 	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 	allocInfo.commandPool = commandPool;
-	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY; 
+	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 	allocInfo.commandBufferCount = (uint32_t)commandBuffers.size();
 
 	if (vkAllocateCommandBuffers(device, &allocInfo, commandBuffers.data()) != VK_SUCCESS)
