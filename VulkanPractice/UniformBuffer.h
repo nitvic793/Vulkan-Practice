@@ -4,8 +4,8 @@
 
 struct DirectionalLight
 {
-	glm::vec3 direction;
-	glm::vec3 color;
+	alignas(16) glm::vec3 direction;
+	alignas(16) glm::vec3 color;
 };
 
 struct UniformBufferObject
@@ -17,7 +17,7 @@ struct UniformBufferObject
 
 struct LightBuffer
 {
-	alignas(16) DirectionalLight dirLight;
+	DirectionalLight dirLight;
 };
 
 struct PerObjectBuffer

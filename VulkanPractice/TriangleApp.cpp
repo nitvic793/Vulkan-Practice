@@ -287,16 +287,24 @@ void TransposeUBO(UniformBufferObject& ubo)
 
 void TriangleApp::UpdateUniformBuffer(uint32_t currentImage)
 {
+	VkPhysicalDeviceProperties properties;
+	vkGetPhysicalDeviceProperties(physicalDevice, &properties);
 	const float speed = 0.2f;
 	static auto startTime = std::chrono::high_resolution_clock::now();
 	auto currentTime = std::chrono::high_resolution_clock::now();
 	auto time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 	camera.Position = glm::vec3(0.f, 0.0f, 5.f);
 
+	LightBuffer lightBuffer = {};
+	lightBuffer.dirLight.direction = glm::normalize(glm::vec3(1, -1, 0));
+	lightBuffer.dirLight.color = glm::vec3(1.0f, 1.0f, 1.0f);
+
 	UniformBufferObject ubo = {};
 	auto model = glm::mat4(1);
+
 	PerObjectBuffer perObject2 = { glm::transpose(glm::translate(model, glm::vec3(2, 0, 0))) };
 	ubo.model = glm::rotate(model, time * glm::radians(90.f) * speed, glm::vec3(0.f, 1.f, 0.f));
+
 	PerObjectBuffer perObject = { glm::transpose(ubo.model) };
 	ubo.view = camera.GetView();
 	ubo.proj = camera.GetProjection();
@@ -309,8 +317,7 @@ void TriangleApp::UpdateUniformBuffer(uint32_t currentImage)
 	memcpy(data, &ubo, sizeof(ubo));
 	vkUnmapMemory(device, uniformBuffersMemory[currentImage]);
 
-	VkPhysicalDeviceProperties properties;
-	vkGetPhysicalDeviceProperties(physicalDevice, &properties);
+	
 	VkDeviceSize bufferSize = sizeof(PerObjectBuffer);
 	if (properties.limits.minUniformBufferOffsetAlignment)
 	{
@@ -323,6 +330,13 @@ void TriangleApp::UpdateUniformBuffer(uint32_t currentImage)
 	data = ((uint8_t*)data) + bufferSize;
 	memcpy(data, &perObject2, sizeof(PerObjectBuffer));
 	vkUnmapMemory(device, dynamicUniformBuffersMemory[currentImage]);
+
+	bufferSize = sizeof(LightBuffer);
+	bufferSize = (bufferSize + properties.limits.minUniformBufferOffsetAlignment - 1) & ~(properties.limits.minUniformBufferOffsetAlignment - 1);
+
+	vkMapMemory(device, lightBuffersMemory[currentImage], 0, bufferSize, 0, &data);
+	memcpy(data, &lightBuffer, sizeof(LightBuffer));
+	vkUnmapMemory(device, lightBuffersMemory[currentImage]);
 }
 
 void TriangleApp::RecordCommandBuffer(uint32_t imageIndex)
@@ -593,7 +607,14 @@ void TriangleApp::CreateDescriptorSetLayout()
 	dynamicUboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 	dynamicUboLayoutBinding.pImmutableSamplers = nullptr;
 
-	std::array<VkDescriptorSetLayoutBinding, 3> bindings = { uboLayoutBinding, samplerLayoutBinding, dynamicUboLayoutBinding };
+	VkDescriptorSetLayoutBinding lightBuffer = {};
+	lightBuffer.binding = 3;
+	lightBuffer.descriptorCount = 1;
+	lightBuffer.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	lightBuffer.pImmutableSamplers = nullptr;
+	lightBuffer.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+	std::array<VkDescriptorSetLayoutBinding, 4> bindings = { uboLayoutBinding, samplerLayoutBinding, dynamicUboLayoutBinding, lightBuffer };
 
 	VkDescriptorSetLayoutCreateInfo layoutInfo = {};
 	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -1762,13 +1783,15 @@ void TriangleApp::CreateUniformBuffer()
 
 void TriangleApp::CreateDescriptorPool()
 {
-	std::array<VkDescriptorPoolSize, 3> poolSizes = {};
+	std::array<VkDescriptorPoolSize, 4> poolSizes = {};
 	poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	poolSizes[0].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
 	poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 	poolSizes[1].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
 	poolSizes[2].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
 	poolSizes[2].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
+	poolSizes[3].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	poolSizes[3].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
 
 	VkDescriptorPoolCreateInfo poolInfo = {};
 	poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -1814,7 +1837,12 @@ void TriangleApp::CreateDescriptorSets()
 		dynamicBufferInfo.offset = 0;
 		dynamicBufferInfo.range = sizeof(PerObjectBuffer);
 
-		std::array<VkWriteDescriptorSet, 3> descriptorWrites = {};
+		VkDescriptorBufferInfo lightBufferInfo = {};
+		lightBufferInfo.buffer = lightBuffers[i];
+		lightBufferInfo.offset = 0;
+		lightBufferInfo.range = sizeof(LightBuffer);
+
+		std::array<VkWriteDescriptorSet, 4> descriptorWrites = {};
 
 		descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		descriptorWrites[0].dstSet = descriptorSets[i];
@@ -1839,6 +1867,14 @@ void TriangleApp::CreateDescriptorSets()
 		descriptorWrites[2].pBufferInfo = &dynamicBufferInfo;
 		descriptorWrites[2].dstArrayElement = 0;
 		descriptorWrites[2].dstBinding = 2;
+
+		descriptorWrites[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[3].dstSet = descriptorSets[i];
+		descriptorWrites[3].dstBinding = 3;
+		descriptorWrites[3].dstArrayElement = 0;
+		descriptorWrites[3].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		descriptorWrites[3].descriptorCount = 1;
+		descriptorWrites[3].pBufferInfo = &lightBufferInfo;
 
 		vkUpdateDescriptorSets(device, (uint32_t)descriptorWrites.size(), descriptorWrites.data(), 0, nullptr);
 	}

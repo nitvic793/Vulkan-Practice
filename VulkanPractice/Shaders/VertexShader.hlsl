@@ -35,6 +35,6 @@ PixelInput main( VertexInput input)
 	output.Position = mul(float4(input.Position, 1.f), worldViewProj);
 	output.UV = input.UV;
 	output.Color = input.Color;
-	output.Normal = normalize(input.Normal);
+	output.Normal = normalize(mul(input.Normal, (float3x3)world));
 	return output;
 }
