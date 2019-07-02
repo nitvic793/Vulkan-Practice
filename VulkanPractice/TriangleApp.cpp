@@ -374,11 +374,11 @@ void TriangleApp::RecordCommandBuffer(uint32_t imageIndex)
 	vkCmdBindVertexBuffers(commandBuffers[imageIndex], 0, 1, vertexBuffers, offsets);
 	vkCmdBindIndexBuffer(commandBuffers[imageIndex], indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 	vkCmdBindDescriptorSets(commandBuffers[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[imageIndex], 1, dynamicOffsets);
-	vkCmdDrawIndexed(commandBuffers[imageIndex], (uint32_t)indices.size(), 1, 0, 0, 0);
+	vkCmdDrawIndexed(commandBuffers[imageIndex], meshes[0].IndexCount, 1, meshes[0].FirstIndex, 0, 0);
 
 	dynamicOffsets[0] = { 256 };
 	vkCmdBindDescriptorSets(commandBuffers[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[imageIndex], 1, dynamicOffsets);
-	vkCmdDrawIndexed(commandBuffers[imageIndex], (uint32_t)indices.size(), 1, 0, 0, 0);
+	vkCmdDrawIndexed(commandBuffers[imageIndex], meshes[1].IndexCount, 1, meshes[1].FirstIndex, 0, 0);
 
 	vkCmdEndRenderPass(commandBuffers[imageIndex]);
 
@@ -1641,62 +1641,17 @@ void TriangleApp::CreateTextureSampler()
 
 void TriangleApp::LoadModel()
 {
-	tinyobj::attrib_t attrib;
-	std::vector<tinyobj::shape_t> shapes;
-	std::vector<tinyobj::material_t> materials;
-	std::string warn, err;
-
-	if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &err, MODEL_PATH.c_str()))
-	{
-		throw std::runtime_error(err);
-	}
-
-	std::unordered_map<Vertex, uint32_t> uniqueVertices = {};
-
-	for (const auto& shape : shapes)
-	{
-		for (const auto& index : shape.mesh.indices)
-		{
-			Vertex vertex = {};
-			vertex.position =
-			{
-				attrib.vertices[3 * index.vertex_index + 0],
-				attrib.vertices[3 * index.vertex_index + 1],
-				attrib.vertices[3 * index.vertex_index + 2]
-			};
-
-			vertex.texCoord =
-			{
-				attrib.texcoords[2 * index.texcoord_index + 0],
-				1.f - attrib.texcoords[2 * index.texcoord_index + 1]
-			};
-
-			if (attrib.normals.size() > 0)
-			{
-				vertex.normal =
-				{
-					attrib.normals[3 * index.normal_index + 0],
-					attrib.normals[3 * index.normal_index + 1],
-					attrib.normals[3 * index.normal_index + 2]
-				};
-			}
-
-			vertex.color = { 1.0f, 1.0f, 1.0f };
-
-			if (uniqueVertices.count(vertex) == 0)
-			{
-				uniqueVertices[vertex] = (uint32_t)vertices.size();
-				vertices.push_back(vertex);
-			}
-
-			indices.push_back(uniqueVertices[vertex]);
-		}
-	}
+	Mesh mesh = meshManager.LoadModel(MODEL_PATH.c_str());
+	meshes.push_back(mesh);
+	meshes.push_back(meshManager.LoadModel("models/sphere.obj"));
 }
 
 void TriangleApp::CreateVertexBuffers()
 {
-	VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
+	const Vertex* vertexData = meshManager.VertexData();
+	size_t vertexCount = meshManager.VertexCount();
+
+	VkDeviceSize bufferSize = sizeof(vertexData[0]) * vertexCount;
 
 	VkBuffer stagingBuffer;
 	VkDeviceMemory stagingBufferMemory;
@@ -1704,7 +1659,7 @@ void TriangleApp::CreateVertexBuffers()
 
 	void* data;
 	vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-	memcpy(data, vertices.data(), (size_t)bufferSize);
+	memcpy(data, vertexData, (size_t)bufferSize);
 	vkUnmapMemory(device, stagingBufferMemory);
 
 	CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
@@ -1716,7 +1671,9 @@ void TriangleApp::CreateVertexBuffers()
 
 void TriangleApp::CreateIndexBuffer()
 {
-	VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
+	const uint32_t* indexData = meshManager.IndexData();
+	size_t indexCount = meshManager.IndexCount();
+	VkDeviceSize bufferSize = sizeof(indexData[0]) * indexCount;
 
 	VkBuffer stagingBuffer;
 	VkDeviceMemory stagingBufferMemory;
@@ -1724,7 +1681,7 @@ void TriangleApp::CreateIndexBuffer()
 
 	void* data;
 	vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-	memcpy(data, indices.data(), (size_t)bufferSize);
+	memcpy(data, indexData, (size_t)bufferSize);
 	vkUnmapMemory(device, stagingBufferMemory);
 
 	CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory);
@@ -1947,18 +1904,4 @@ void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT
 	}
 }
 
-int RunApp()
-{
-	TriangleApp app;
-	try
-	{
-		app.Run();
-	}
-	catch (const std::exception& e)
-	{
-		std::cerr << e.what() << std::endl;
-		return EXIT_FAILURE;
-	}
 
-	return EXIT_SUCCESS;
-}

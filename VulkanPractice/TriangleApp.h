@@ -8,7 +8,7 @@
 #include <functional>
 #include <cstdlib>
 #include <optional>
-
+#include "Mesh.h"
 #include "Vertex.h"
 #include "Camera.h"
 
@@ -187,6 +187,8 @@ private:
 	bool framebufferResized = false;
 
 	//Mesh
+	MeshManager meshManager;
+	std::vector<Mesh> meshes;
 	std::vector<Vertex> vertices;
 	std::vector<uint32_t> indices;
 	VkBuffer vertexBuffer;
@@ -220,4 +222,3 @@ private:
 	Camera camera;
 };
 
-int RunApp();
