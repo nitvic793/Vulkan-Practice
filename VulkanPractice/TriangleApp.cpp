@@ -14,6 +14,7 @@
 #include <algorithm>
 #include "Utils.h"
 #include "UniformBuffer.h"
+#include "Texture.h"
 #include <iomanip> // setprecision
 #include <sstream>
 
@@ -112,10 +113,14 @@ void TriangleApp::CleanUp()
 {
 	CleanupSwapChain();
 
+	for (auto& texture : textures)
+	{
+		vkDestroyImageView(device, texture.ImageView, nullptr);
+		vkDestroyImage(device, texture.Image, nullptr);
+		vkFreeMemory(device, texture.ImageMemory, nullptr);
+	}
+
 	vkDestroySampler(device, textureSampler, nullptr);
-	vkDestroyImageView(device, textureImageView, nullptr);
-	vkDestroyImage(device, textureImage, nullptr);
-	vkFreeMemory(device, textureImageMemory, nullptr);
 	vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 	vkDestroyBuffer(device, indexBuffer, nullptr);
 	vkFreeMemory(device, indexBufferMemory, nullptr);
@@ -211,6 +216,47 @@ void TriangleApp::DrawFrame()
 	}
 
 	currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+}
+
+Texture TriangleApp::CreateTexture(const char* filename)
+{
+	Texture texture = {};
+	int texChannels;
+	texture.TextureFormat = VK_FORMAT_R8G8B8A8_UNORM;
+	auto pixels = stbi_load(filename, &texture.Width, &texture.Height, &texChannels, STBI_rgb_alpha);
+	texture.ImageSize = (uint64_t)texture.Width * texture.Height * 4; //4 Bytes per pixel - RGB+Alpha
+	texture.MipLevels = (uint32_t)std::floor(std::log2(std::max(texture.Width, texture.Height))) + 1;
+
+	if (!pixels)
+	{
+		throw std::runtime_error("Failed to load texture");
+	}
+
+	VkBuffer stagingBuffer;
+	VkDeviceMemory stagingBufferMemory;
+	CreateBuffer(texture.ImageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+
+	void* data;
+	vkMapMemory(device, stagingBufferMemory, 0, texture.ImageSize, 0, &data);
+	memcpy(data, pixels, (size_t)texture.ImageSize);
+	vkUnmapMemory(device, stagingBufferMemory);
+
+	stbi_image_free(pixels);
+
+	CreateImage(texture.Width, texture.Height, texture.MipLevels, VK_SAMPLE_COUNT_1_BIT,
+		texture.TextureFormat, VK_IMAGE_TILING_OPTIMAL,
+		VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, texture.Image, texture.ImageMemory);
+
+	TransitionImageLayout(texture.Image, texture.TextureFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, texture.MipLevels);
+	CopyBufferToImage(stagingBuffer, texture.Image, (uint32_t)texture.Width, (uint32_t)texture.Height);
+	GenerateMipMaps(texture.Image, texture.TextureFormat, texture.Width, texture.Height, texture.MipLevels);
+
+	vkDestroyBuffer(device, stagingBuffer, nullptr);
+	vkFreeMemory(device, stagingBufferMemory, nullptr);
+
+	texture.ImageView = CreateImageView(texture.Image, texture.TextureFormat, VK_IMAGE_ASPECT_COLOR_BIT, texture.MipLevels);
+	return texture;
 }
 
 void TriangleApp::CleanupSwapChain()
@@ -1573,44 +1619,12 @@ void TriangleApp::CreateDepthResources()
 
 void TriangleApp::CreateTextureImage()
 {
-	int texWidth, texHeight, texChannels;
-	auto format = VK_FORMAT_R8G8B8A8_UNORM;
-	auto pixels = stbi_load(TEXTURE_PATH.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-	VkDeviceSize imageSize = (uint64_t)texWidth * texHeight * 4; //4 Bytes per pixel - RGB+Alpha
-	mipLevels = (uint32_t)std::floor(std::log2(std::max(texWidth, texHeight))) + 1;
-
-	if (!pixels)
-	{
-		throw std::runtime_error("Failed to load texture");
-	}
-
-	VkBuffer stagingBuffer;
-	VkDeviceMemory stagingBufferMemory;
-	CreateBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
-
-	void* data;
-	vkMapMemory(device, stagingBufferMemory, 0, imageSize, 0, &data);
-	memcpy(data, pixels, (size_t)imageSize);
-	vkUnmapMemory(device, stagingBufferMemory);
-
-	stbi_image_free(pixels);
-
-	CreateImage(texWidth, texHeight, mipLevels, VK_SAMPLE_COUNT_1_BIT,
-		format, VK_IMAGE_TILING_OPTIMAL,
-		VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, textureImage, textureImageMemory);
-
-	TransitionImageLayout(textureImage, format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, mipLevels);
-	CopyBufferToImage(stagingBuffer, textureImage, (uint32_t)texWidth, (uint32_t)texHeight);
-	GenerateMipMaps(textureImage, format, texWidth, texHeight, mipLevels);
-
-	vkDestroyBuffer(device, stagingBuffer, nullptr);
-	vkFreeMemory(device, stagingBufferMemory, nullptr);
+	Texture texture = CreateTexture(TEXTURE_PATH.c_str());
+	textures.push_back(texture);
 }
 
 void TriangleApp::CreateTextureImageView()
 {
-	textureImageView = CreateImageView(textureImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
 }
 
 void TriangleApp::CreateTextureSampler()
@@ -1631,7 +1645,7 @@ void TriangleApp::CreateTextureSampler()
 	samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 	samplerInfo.mipLodBias = 0.0f;
 	samplerInfo.minLod = 0.0f;
-	samplerInfo.maxLod = (float)mipLevels;
+	samplerInfo.maxLod = (float)maxLod;
 
 	if (vkCreateSampler(device, &samplerInfo, nullptr, &textureSampler) != VK_SUCCESS)
 	{
@@ -1786,7 +1800,7 @@ void TriangleApp::CreateDescriptorSets()
 
 		VkDescriptorImageInfo imageInfo = {};
 		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		imageInfo.imageView = textureImageView;
+		imageInfo.imageView = textures[0].ImageView;
 		imageInfo.sampler = textureSampler;
 
 		VkDescriptorBufferInfo dynamicBufferInfo = {};
@@ -1816,7 +1830,7 @@ void TriangleApp::CreateDescriptorSets()
 		descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		descriptorWrites[1].descriptorCount = 1;
 		descriptorWrites[1].pImageInfo = &imageInfo;
-
+		
 		descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		descriptorWrites[2].dstSet = descriptorSets[i];
 		descriptorWrites[2].descriptorCount = 1;

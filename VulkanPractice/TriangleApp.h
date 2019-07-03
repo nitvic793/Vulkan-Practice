@@ -11,13 +11,14 @@
 #include "Mesh.h"
 #include "Vertex.h"
 #include "Camera.h"
+#include "Texture.h"
 
 const int WIDTH = 1280;
 const int HEIGHT = 720;
 const std::string MODEL_PATH = "models/cone.obj";
 const std::string TEXTURE_PATH = "textures/chalet.jpg";
 const int MAX_FRAMES_IN_FLIGHT = 2;
-const int MAX_ENTITIES = 2;
+const int MAX_ENTITIES = 12;
 
 const std::vector<const char*> validationLayers = {
 	"VK_LAYER_KHRONOS_validation"
@@ -105,6 +106,7 @@ private:
 	void CreateSyncObjects();
 
 	//Utility Functions
+	Texture CreateTexture(const char* filename);
 	void CleanupSwapChain();
 	void RecreateSwapChain();
 	std::vector<const char*> GetRequiredExtensions();
@@ -168,11 +170,9 @@ private:
 	VkQueue presentQueue;
 
 	//Texture
-	uint32_t mipLevels;
-	VkImage textureImage;
-	VkDeviceMemory textureImageMemory;
-	VkImageView textureImageView;
 	VkSampler textureSampler;
+	std::vector<Texture> textures;
+	float maxLod = 13.f;
 
 	//Depth Buffer
 	VkImage depthImage;

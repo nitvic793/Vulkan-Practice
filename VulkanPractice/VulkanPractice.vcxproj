@@ -163,12 +163,14 @@
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Mesh.cpp" />
+    <ClCompile Include="Texture.cpp" />
     <ClCompile Include="TriangleApp.cpp" />
     <ClCompile Include="Utils.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.h" />
     <ClInclude Include="Mesh.h" />
+    <ClInclude Include="Texture.h" />
     <ClInclude Include="TriangleApp.h" />
     <ClInclude Include="UniformBuffer.h" />
     <ClInclude Include="Utils.h" />
