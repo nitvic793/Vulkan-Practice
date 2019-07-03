@@ -122,6 +122,7 @@ void TriangleApp::CleanUp()
 
 	vkDestroySampler(device, textureSampler, nullptr);
 	vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
+	vkDestroyDescriptorSetLayout(device, textureDescriptorSetLayout, nullptr);
 	vkDestroyBuffer(device, indexBuffer, nullptr);
 	vkFreeMemory(device, indexBufferMemory, nullptr);
 	vkDestroyBuffer(device, vertexBuffer, nullptr);
@@ -342,7 +343,7 @@ void TriangleApp::UpdateUniformBuffer(uint32_t currentImage)
 	camera.Position = glm::vec3(0.f, 0.0f, 5.f);
 
 	LightBuffer lightBuffer = {};
-	lightBuffer.dirLight.direction = glm::normalize(glm::vec3(1, -1, 0));
+	lightBuffer.dirLight.direction = glm::normalize(glm::vec3(sin(time), -1, 0));
 	lightBuffer.dirLight.color = glm::vec3(1.0f, 1.0f, 1.0f);
 
 	UniformBufferObject ubo = {};
@@ -414,16 +415,19 @@ void TriangleApp::RecordCommandBuffer(uint32_t imageIndex)
 	vkCmdBeginRenderPass(commandBuffers[imageIndex], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 	vkCmdBindPipeline(commandBuffers[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
 
+	std::array<VkDescriptorSet, 2> descriptorSetArray = { descriptorSets[imageIndex], textureDescriptorSets[0 * swapChainImages.size() + imageIndex] };
 	VkBuffer vertexBuffers[] = { vertexBuffer };
 	VkDeviceSize offsets[] = { 0 };
 	uint32_t dynamicOffsets[] = { 0 };
+
 	vkCmdBindVertexBuffers(commandBuffers[imageIndex], 0, 1, vertexBuffers, offsets);
 	vkCmdBindIndexBuffer(commandBuffers[imageIndex], indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-	vkCmdBindDescriptorSets(commandBuffers[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[imageIndex], 1, dynamicOffsets);
+	vkCmdBindDescriptorSets(commandBuffers[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, (uint32_t)descriptorSetArray.size(), descriptorSetArray.data(), 1, dynamicOffsets);
 	vkCmdDrawIndexed(commandBuffers[imageIndex], meshes[0].IndexCount, 1, meshes[0].FirstIndex, 0, 0);
 
 	dynamicOffsets[0] = { 256 };
-	vkCmdBindDescriptorSets(commandBuffers[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[imageIndex], 1, dynamicOffsets);
+	descriptorSetArray[1] = textureDescriptorSets[1 * swapChainImages.size() + imageIndex]; //Binding texture 1 
+	vkCmdBindDescriptorSets(commandBuffers[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, (uint32_t)descriptorSetArray.size(), descriptorSetArray.data(), 1, dynamicOffsets);
 	vkCmdDrawIndexed(commandBuffers[imageIndex], meshes[1].IndexCount, 1, meshes[1].FirstIndex, 0, 0);
 
 	vkCmdEndRenderPass(commandBuffers[imageIndex]);
@@ -670,6 +674,19 @@ void TriangleApp::CreateDescriptorSetLayout()
 	if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS)
 	{
 		throw std::runtime_error("Failed to create descriptor set layout.");
+	}
+
+	samplerLayoutBinding.binding = 0;
+	std::array<VkDescriptorSetLayoutBinding, 1> textureBindings = { samplerLayoutBinding };
+
+	VkDescriptorSetLayoutCreateInfo textureLayoutInfo = {};
+	textureLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	textureLayoutInfo.bindingCount = (uint32_t)textureBindings.size();
+	textureLayoutInfo.pBindings = textureBindings.data();
+
+	if (vkCreateDescriptorSetLayout(device, &textureLayoutInfo, nullptr, &textureDescriptorSetLayout) != VK_SUCCESS)
+	{
+		throw std::runtime_error("Failed to create texture descriptor set layout.");
 	}
 }
 
@@ -1506,10 +1523,11 @@ void TriangleApp::CreateGraphicsPipeline()
 	colorBlending.blendConstants[2] = 0.0f; // Optional
 	colorBlending.blendConstants[3] = 0.0f; // Optional
 
+	std::array<VkDescriptorSetLayout, 2> descriptorSetLayouts = { descriptorSetLayout, textureDescriptorSetLayout };
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
 	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	pipelineLayoutInfo.setLayoutCount = 1;
-	pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
+	pipelineLayoutInfo.setLayoutCount = (uint32_t)descriptorSetLayouts.size();
+	pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts.data();
 	pipelineLayoutInfo.pushConstantRangeCount = 0;
 	pipelineLayoutInfo.pPushConstantRanges = nullptr;
 
@@ -1621,6 +1639,7 @@ void TriangleApp::CreateTextureImage()
 {
 	Texture texture = CreateTexture(TEXTURE_PATH.c_str());
 	textures.push_back(texture);
+	textures.push_back(CreateTexture("Textures/texture.jpg"));
 }
 
 void TriangleApp::CreateTextureImageView()
@@ -1752,13 +1771,16 @@ void TriangleApp::CreateUniformBuffer()
 	}
 }
 
+const uint32_t TEXTURE_COUNT = 2;
+const uint32_t DESCRIPTOR_SET_COUNT = 2 * TEXTURE_COUNT;
+
 void TriangleApp::CreateDescriptorPool()
 {
 	std::array<VkDescriptorPoolSize, 4> poolSizes = {};
 	poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	poolSizes[0].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
 	poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	poolSizes[1].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
+	poolSizes[1].descriptorCount = static_cast<uint32_t>(swapChainImages.size() * (TEXTURE_COUNT + 4));
 	poolSizes[2].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
 	poolSizes[2].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
 	poolSizes[3].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -1768,7 +1790,7 @@ void TriangleApp::CreateDescriptorPool()
 	poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 	poolInfo.poolSizeCount = (uint32_t)poolSizes.size();
 	poolInfo.pPoolSizes = poolSizes.data();
-	poolInfo.maxSets = (uint32_t)swapChainImages.size();
+	poolInfo.maxSets = (uint32_t)swapChainImages.size() * DESCRIPTOR_SET_COUNT;
 
 	if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS)
 	{
@@ -1800,7 +1822,7 @@ void TriangleApp::CreateDescriptorSets()
 
 		VkDescriptorImageInfo imageInfo = {};
 		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		imageInfo.imageView = textures[0].ImageView;
+		imageInfo.imageView = textures[1].ImageView;
 		imageInfo.sampler = textureSampler;
 
 		VkDescriptorBufferInfo dynamicBufferInfo = {};
@@ -1830,7 +1852,7 @@ void TriangleApp::CreateDescriptorSets()
 		descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		descriptorWrites[1].descriptorCount = 1;
 		descriptorWrites[1].pImageInfo = &imageInfo;
-		
+
 		descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		descriptorWrites[2].dstSet = descriptorSets[i];
 		descriptorWrites[2].descriptorCount = 1;
@@ -1849,6 +1871,42 @@ void TriangleApp::CreateDescriptorSets()
 
 		vkUpdateDescriptorSets(device, (uint32_t)descriptorWrites.size(), descriptorWrites.data(), 0, nullptr);
 	}
+
+	std::vector<VkDescriptorSetLayout> texlayouts(swapChainImages.size() * TEXTURE_COUNT, textureDescriptorSetLayout);
+	VkDescriptorSetAllocateInfo texAllocInfo = {};
+	texAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	texAllocInfo.descriptorPool = descriptorPool;
+	texAllocInfo.descriptorSetCount = (uint32_t)swapChainImages.size() * TEXTURE_COUNT;
+	texAllocInfo.pSetLayouts = texlayouts.data();
+
+	textureDescriptorSets.resize(swapChainImages.size() * TEXTURE_COUNT);
+	if (vkAllocateDescriptorSets(device, &texAllocInfo, textureDescriptorSets.data()) != VK_SUCCESS)
+	{
+		throw std::runtime_error("Failed to allocate texture descriptor sets");
+	}
+
+	for (size_t texIndex = 0; texIndex < textures.size(); ++texIndex)
+	{
+		for (size_t i = 0; i < swapChainImages.size(); ++i)
+		{
+			VkDescriptorImageInfo imageInfo = {};
+			imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			imageInfo.imageView = textures[texIndex].ImageView;
+			imageInfo.sampler = textureSampler;
+
+			std::array<VkWriteDescriptorSet, 1> descriptorWrites = { };
+			descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			descriptorWrites[0].dstSet = textureDescriptorSets[i + texIndex * swapChainImages.size()];
+			descriptorWrites[0].dstBinding = 0;
+			descriptorWrites[0].dstArrayElement = 0;
+			descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			descriptorWrites[0].descriptorCount = 1;
+			descriptorWrites[0].pImageInfo = &imageInfo;
+
+			vkUpdateDescriptorSets(device, (uint32_t)descriptorWrites.size(), descriptorWrites.data(), 0, nullptr);
+		}
+	}
+	
 }
 
 void TriangleApp::CreateCommandBuffers()

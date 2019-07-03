@@ -20,9 +20,9 @@ cbuffer LightBuffer				: register(b0)
 	DirectionalLight DirLight;
 };
 
-[[vk::binding(1)]]
+[[vk::binding(0, 1)]]
 Texture2D		Texture			: register(t0); // Binding 1 (Combined Texture Sampler)
-[[vk::binding(1)]]
+[[vk::binding(0, 1)]]
 SamplerState	BasicSampler	: register(s0);
 
 float4 main(PixelInput input)	: SV_TARGET

@@ -208,8 +208,10 @@ private:
 
 	//Descriptors
 	VkDescriptorSetLayout descriptorSetLayout;
+	VkDescriptorSetLayout textureDescriptorSetLayout;
 	VkDescriptorPool descriptorPool;
 	std::vector<VkDescriptorSet> descriptorSets;
+	std::vector<VkDescriptorSet> textureDescriptorSets;
 
 	//Debug
 	VkDebugUtilsMessengerEXT debugMessenger;
