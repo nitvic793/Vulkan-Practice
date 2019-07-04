@@ -676,8 +676,21 @@ void TriangleApp::CreateDescriptorSetLayout()
 		throw std::runtime_error("Failed to create descriptor set layout.");
 	}
 
-	samplerLayoutBinding.binding = 0;
-	std::array<VkDescriptorSetLayoutBinding, 1> textureBindings = { samplerLayoutBinding };
+	VkDescriptorSetLayoutBinding samplerBinding = {};
+	samplerBinding.binding = 0;
+	samplerBinding.descriptorCount = 1;
+	samplerBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+	samplerBinding.pImmutableSamplers = nullptr;
+	samplerBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+	VkDescriptorSetLayoutBinding imageLayoutBinding = {};
+	imageLayoutBinding.binding = 1;
+	imageLayoutBinding.descriptorCount = 1;
+	imageLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+	imageLayoutBinding.pImmutableSamplers = nullptr;
+	imageLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+	std::array<VkDescriptorSetLayoutBinding, 2> textureBindings = { imageLayoutBinding, samplerBinding };
 
 	VkDescriptorSetLayoutCreateInfo textureLayoutInfo = {};
 	textureLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -1772,19 +1785,23 @@ void TriangleApp::CreateUniformBuffer()
 }
 
 const uint32_t TEXTURE_COUNT = 2;
-const uint32_t DESCRIPTOR_SET_COUNT = 2 * TEXTURE_COUNT;
+const uint32_t DESCRIPTOR_SET_COUNT = 2 * TEXTURE_COUNT + 1; // + 1 Sampler
 
 void TriangleApp::CreateDescriptorPool()
 {
-	std::array<VkDescriptorPoolSize, 4> poolSizes = {};
+	std::array<VkDescriptorPoolSize, 6> poolSizes = {};
 	poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	poolSizes[0].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
 	poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	poolSizes[1].descriptorCount = static_cast<uint32_t>(swapChainImages.size() * (TEXTURE_COUNT + 4));
+	poolSizes[1].descriptorCount = static_cast<uint32_t>(swapChainImages.size() * (TEXTURE_COUNT + 1));
 	poolSizes[2].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
 	poolSizes[2].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
 	poolSizes[3].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	poolSizes[3].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
+	poolSizes[4].type = VK_DESCRIPTOR_TYPE_SAMPLER;
+	poolSizes[4].descriptorCount = static_cast<uint32_t>(swapChainImages.size() * TEXTURE_COUNT);
+	poolSizes[5].type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+	poolSizes[5].descriptorCount = static_cast<uint32_t>(swapChainImages.size() * TEXTURE_COUNT);
 
 	VkDescriptorPoolCreateInfo poolInfo = {};
 	poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -1889,19 +1906,34 @@ void TriangleApp::CreateDescriptorSets()
 	{
 		for (size_t i = 0; i < swapChainImages.size(); ++i)
 		{
+			
 			VkDescriptorImageInfo imageInfo = {};
 			imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 			imageInfo.imageView = textures[texIndex].ImageView;
-			imageInfo.sampler = textureSampler;
+			imageInfo.sampler = VK_NULL_HANDLE;
 
-			std::array<VkWriteDescriptorSet, 1> descriptorWrites = { };
+			VkDescriptorImageInfo samplerInfo = {};
+			samplerInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			samplerInfo.imageView = VK_NULL_HANDLE;
+			samplerInfo.sampler = textureSampler;
+
+			std::array<VkWriteDescriptorSet, 2> descriptorWrites = { };
+
 			descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 			descriptorWrites[0].dstSet = textureDescriptorSets[i + texIndex * swapChainImages.size()];
 			descriptorWrites[0].dstBinding = 0;
 			descriptorWrites[0].dstArrayElement = 0;
-			descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
 			descriptorWrites[0].descriptorCount = 1;
-			descriptorWrites[0].pImageInfo = &imageInfo;
+			descriptorWrites[0].pImageInfo = &samplerInfo;
+
+			descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			descriptorWrites[1].dstSet = textureDescriptorSets[i + texIndex * swapChainImages.size()];
+			descriptorWrites[1].dstBinding = 1;
+			descriptorWrites[1].dstArrayElement = 0;
+			descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+			descriptorWrites[1].descriptorCount = 1;
+			descriptorWrites[1].pImageInfo = &imageInfo;
 
 			vkUpdateDescriptorSets(device, (uint32_t)descriptorWrites.size(), descriptorWrites.data(), 0, nullptr);
 		}
