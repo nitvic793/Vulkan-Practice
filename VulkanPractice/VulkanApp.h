@@ -55,7 +55,7 @@ struct SwapChainSupportDetails
 };
 
 
-class TriangleApp
+class VulkanApp
 {
 public:
 	inline void Run()
