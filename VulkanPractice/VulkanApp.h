@@ -12,6 +12,7 @@
 #include "Vertex.h"
 #include "Camera.h"
 #include "Texture.h"
+#include "InputManager.h"
 
 const int WIDTH = 1280;
 const int HEIGHT = 720;
@@ -145,6 +146,7 @@ private:
 	void GenerateMipMaps(VkImage image, VkFormat imageFormat, int32_t texWidth, int32_t texHeight, uint32_t mipLevels);
 	VkSampleCountFlagBits GetMaxUsableSampleCount();
 
+
 	//Window, Vulkan
 	GLFWwindow* window;
 	VkInstance instance;
@@ -221,6 +223,8 @@ private:
 	VkImage colorImage;
 	VkDeviceMemory colorImageMemory;
 	VkImageView colorImageView;
+
 	Camera camera;
+	InputManager input;
 };
 

@@ -1,5 +1,6 @@
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#define GLM_FORCE_LEFT_HANDED
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -60,6 +61,7 @@ void VulkanApp::InitWindow()
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 	window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
+	input.SetWindow(window);
 	glfwSetWindowUserPointer(window, this);
 	glfwSetFramebufferSizeCallback(window, FramebufferResizeCallback);
 }
@@ -78,17 +80,18 @@ void VulkanApp::MainLoop()
 	uint64_t count = 0;
 	double fps = 0.0;
 	double avgFps = 0.0;
+	auto startTime = std::chrono::high_resolution_clock::now();
+	auto prevTime = std::chrono::high_resolution_clock::now();
+	auto currentTime = std::chrono::high_resolution_clock::now();
 
 	while (!glfwWindowShouldClose(window))
 	{
-		auto start = std::chrono::high_resolution_clock::now();
-		glfwPollEvents();
-		DrawFrame();
-		auto end = std::chrono::high_resolution_clock::now();
-
-		auto frameTime = std::chrono::duration_cast<ms>(end - start).count();
-		fps += 1000.f / frameTime;
-		timer += std::chrono::duration_cast<seconds>(end - start).count();
+		//Timer Code
+		currentTime = std::chrono::high_resolution_clock::now();
+		auto deltaTime = std::chrono::duration_cast<ms>(currentTime - prevTime).count();
+		timer += std::chrono::duration_cast<seconds>(currentTime - prevTime).count();
+		prevTime = currentTime;
+		fps += 1000.f / deltaTime;
 		count++;
 		if (timer > 0.2f) //Update average FPS every 1/5th of a second
 		{
@@ -103,7 +106,11 @@ void VulkanApp::MainLoop()
 		stream << std::fixed << std::setprecision(2) << avgFps;
 		std::string fpsString = stream.str();
 
-		glfwSetWindowTitle(window, ("Vulkan App | " + fpsString + " FPS").c_str());
+		glfwSetWindowTitle(window, ("Vulkan App   FPS: " + fpsString).c_str());
+
+		//App Code
+		glfwPollEvents();
+		DrawFrame();		
 	}
 
 	vkDeviceWaitIdle(device);
@@ -334,6 +341,10 @@ void TransposeUBO(UniformBufferObject& ubo)
 
 void VulkanApp::UpdateUniformBuffer(uint32_t currentImage)
 {
+	if (input.IsKeyDown(GLFW_KEY_W))
+	{
+		std::cout << "W \n";
+	}
 	VkPhysicalDeviceProperties properties;
 	vkGetPhysicalDeviceProperties(physicalDevice, &properties);
 	const float speed = 0.2f;
