@@ -1,9 +1,9 @@
 #include <iostream>
-#include "VulkanApp.h"
+#include "Game.h"
 
 int RunApp()
 {
-	VulkanApp app;
+	Game app;
 	try
 	{
 		app.Run();

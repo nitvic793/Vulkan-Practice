@@ -13,13 +13,13 @@
 #include "Camera.h"
 #include "Texture.h"
 #include "InputManager.h"
+#include "Entities.h"
 
 const int WIDTH = 1280;
 const int HEIGHT = 720;
 const std::string MODEL_PATH = "models/cone.obj";
 const std::string TEXTURE_PATH = "textures/chalet.jpg";
 const int MAX_FRAMES_IN_FLIGHT = 2;
-const int MAX_ENTITIES = 12;
 
 const std::vector<const char*> validationLayers = {
 	"VK_LAYER_KHRONOS_validation"
@@ -67,6 +67,10 @@ public:
 		MainLoop();
 		CleanUp();
 	}
+
+	//Game Virtual Functions
+	virtual void Update(float deltaTime, float totalTime) {};
+	virtual void Initialize() {};
 
 private:
 	void InitVulkan();
@@ -120,7 +124,7 @@ private:
 	static void FramebufferResizeCallback(GLFWwindow* window, int width, int height);
 	void PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
 	void CreateImage(uint32_t width, uint32_t height, uint32_t mipLevels, VkSampleCountFlagBits numSamples,
-		VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, 
+		VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage,
 		VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
 	void CreateDescriptorSetLayout();
 	void CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
@@ -191,8 +195,6 @@ private:
 	//Mesh
 	MeshManager meshManager;
 	std::vector<Mesh> meshes;
-	std::vector<Vertex> vertices;
-	std::vector<uint32_t> indices;
 	VkBuffer vertexBuffer;
 	VkDeviceMemory vertexBufferMemory;
 	VkBuffer indexBuffer;
@@ -224,7 +226,11 @@ private:
 	VkDeviceMemory colorImageMemory;
 	VkImageView colorImageView;
 
+protected:
+
 	Camera camera;
 	InputManager input;
+	EntityManager entities;
+
 };
 

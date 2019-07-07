@@ -69,6 +69,7 @@ void VulkanApp::InitWindow()
 void VulkanApp::InitResources()
 {
 	camera = Camera(45.0f, swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10.f);
+	Initialize();
 }
 
 void VulkanApp::MainLoop()
@@ -88,10 +89,11 @@ void VulkanApp::MainLoop()
 	{
 		//Timer Code
 		currentTime = std::chrono::high_resolution_clock::now();
-		auto deltaTime = std::chrono::duration_cast<ms>(currentTime - prevTime).count();
-		timer += std::chrono::duration_cast<seconds>(currentTime - prevTime).count();
+		auto deltaTime = std::chrono::duration_cast<seconds>(currentTime - prevTime).count();
+		auto totalTime = std::chrono::duration_cast<seconds>(currentTime - startTime).count();
+		timer += deltaTime;
 		prevTime = currentTime;
-		fps += 1000.f / deltaTime;
+		fps += 1.f / deltaTime;
 		count++;
 		if (timer > 0.2f) //Update average FPS every 1/5th of a second
 		{
@@ -109,6 +111,8 @@ void VulkanApp::MainLoop()
 		glfwSetWindowTitle(window, ("Vulkan App   FPS: " + fpsString).c_str());
 
 		//App Code
+		Update(deltaTime, totalTime);
+		entities.UpdateWorldMatrices();
 		glfwPollEvents();
 		DrawFrame();		
 	}
@@ -354,7 +358,7 @@ void VulkanApp::UpdateUniformBuffer(uint32_t currentImage)
 	camera.Position = glm::vec3(0.f, 0.0f, 5.f);
 
 	LightBuffer lightBuffer = {};
-	lightBuffer.dirLight.direction = glm::normalize(glm::vec3(sin(time), -1, 0));
+	lightBuffer.dirLight.direction = glm::normalize(glm::vec3(sin(time * 0.1f), -1, 0));
 	lightBuffer.dirLight.color = glm::vec3(1.0f, 1.0f, 1.0f);
 
 	UniformBufferObject ubo = {};
