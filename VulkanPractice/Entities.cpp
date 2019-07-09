@@ -4,11 +4,20 @@
 #define GLM_FORCE_LEFT_HANDED
 
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/euler_angles.hpp>
+
+const glm::vec3 DefaultScale = glm::vec3(1.f, 1.f, 1.f);
+const glm::vec3 DefaultRotation = glm::vec3(0.f, 0.f, 0.f);
+const glm::vec3 DefaultUp = glm::vec3(0.f, 1.f, 0.f);
 
 glm::mat4 GetWorldMatrix(const Entity& entity, const glm::mat4& world  = glm::mat4(1))
 {
-	auto translation = glm::translate(world, entity.Position);
-	return translation;
+	auto identity = glm::mat4(1);
+	auto translation = glm::translate(identity, entity.Position);
+	auto rotation = glm::eulerAngleXYZ(entity.Rotation.x, entity.Rotation.y, entity.Rotation.z);
+	auto scale = glm::scale(identity, entity.Scale);
+	auto transform = translation * rotation * scale;
+	return transform;
 }
 
 EntityManager::EntityManager():
@@ -29,7 +38,7 @@ void EntityManager::UpdateWorldMatrices()
 EntityID EntityManager::CreateEntity(glm::vec3 position)
 {
 	EntityID entityID = currentEntityIndex;
-	entities.push_back({ position });
+	entities.push_back({ position, DefaultRotation, DefaultScale });
 	worlds.push_back(GetWorldMatrix(entities[entityID]));
 	currentEntityIndex++;
 	return entityID;
@@ -38,4 +47,14 @@ EntityID EntityManager::CreateEntity(glm::vec3 position)
 void EntityManager::SetPosition(const EntityID& id, const glm::vec3& position)
 {
 	entities[id].Position = position;
+}
+
+void EntityManager::SetRotation(const EntityID& id, const glm::vec3& rotation)
+{
+	entities[id].Rotation = rotation;
+}
+
+const std::vector<glm::mat4>& EntityManager::GetWorldMatrices()
+{
+	return worlds;
 }

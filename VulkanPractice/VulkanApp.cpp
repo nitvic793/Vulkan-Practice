@@ -41,10 +41,12 @@ void VulkanApp::InitVulkan()
 	CreateDepthResources();
 	CreateFrameBuffers();
 
+	InitResources(); // Game Init call
 	CreateTextureImage();
 	CreateTextureImageView();
 	CreateTextureSampler();
 	LoadModel();
+	
 	CreateVertexBuffers();
 	CreateIndexBuffer();
 	CreateUniformBuffer();
@@ -362,12 +364,6 @@ void VulkanApp::UpdateUniformBuffer(uint32_t currentImage)
 	lightBuffer.dirLight.color = glm::vec3(1.0f, 1.0f, 1.0f);
 
 	UniformBufferObject ubo = {};
-	auto model = glm::mat4(1);
-
-	PerObjectBuffer perObject2 = { glm::transpose(glm::translate(model, glm::vec3(2, sin(time * 2.f) * speed, 0))) };
-	ubo.model = glm::rotate(model, time * glm::radians(90.f) * speed, glm::vec3(0.f, 1.f, 0.f));
-
-	PerObjectBuffer perObject = { glm::transpose(ubo.model) };
 	ubo.view = camera.GetView();
 	ubo.proj = camera.GetProjection();
 	ubo.proj[1][1] *= -1; // Flip y for Vulkan (OpenGL is opposite)
@@ -387,10 +383,14 @@ void VulkanApp::UpdateUniformBuffer(uint32_t currentImage)
 		bufferSize = (bufferSize + properties.limits.minUniformBufferOffsetAlignment - 1) & ~(properties.limits.minUniformBufferOffsetAlignment - 1);
 	}
 
+	auto& worldMatrices = entities.GetWorldMatrices();
 	vkMapMemory(device, dynamicUniformBuffersMemory[currentImage], 0, bufferSize * MAX_ENTITIES, 0, &data);
-	memcpy(data, &perObject, sizeof(PerObjectBuffer));
-	data = ((uint8_t*)data) + bufferSize;
-	memcpy(data, &perObject2, sizeof(PerObjectBuffer));
+	for (size_t i = 0; i < worldMatrices.size(); ++i)
+	{
+		PerObjectBuffer perObjectBuffer = { glm::transpose(worldMatrices[i]) };
+		memcpy(data, &perObjectBuffer, sizeof(PerObjectBuffer));
+		data = ((uint8_t*)data) + bufferSize;
+	}
 	vkUnmapMemory(device, dynamicUniformBuffersMemory[currentImage]);
 
 	bufferSize = sizeof(LightBuffer);

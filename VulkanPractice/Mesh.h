@@ -23,6 +23,7 @@ public:
 private:
 	std::vector<Vertex> vertices;
 	std::vector<uint32_t> indices;
+	std::vector<Mesh> meshes;
 
 	uint32_t currentVertexIndex = 0;
 	uint32_t currentIndicesIndex = 0;

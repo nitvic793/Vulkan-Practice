@@ -61,6 +61,7 @@ Mesh MeshManager::LoadModel(const char* filename)
 	}
 
 	mesh.IndexCount = currentIndicesIndex - mesh.FirstIndex;
+	meshes.push_back(mesh);
 	return mesh;
 }
 
