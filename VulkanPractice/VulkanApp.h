@@ -175,8 +175,9 @@ private:
 	VkQueue presentQueue;
 
 	//Texture
+	TextureManager textureManager;
 	VkSampler textureSampler;
-	std::vector<Texture> textures;
+	//std::vector<Texture> textures;
 	float maxLod = 13.f;
 
 	//Depth Buffer
@@ -226,10 +227,10 @@ private:
 	VkImageView colorImageView;
 
 protected:
-
+	TextureID	AddTexture(const std::string& textureFileName);
+	Mesh		AddMesh(const std::string& meshFileName);
 	Camera camera;
 	InputManager input;
 	EntityManager entities;
-
 };
 

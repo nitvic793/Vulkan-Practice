@@ -35,13 +35,18 @@ void EntityManager::UpdateWorldMatrices()
 	}
 }
 
-EntityID EntityManager::CreateEntity(glm::vec3 position)
+EntityID EntityManager::CreateEntity(const Mesh& mesh, TextureID textureID, glm::vec3 position)
 {
 	EntityID entityID = currentEntityIndex;
-	entities.push_back({ position, DefaultRotation, DefaultScale });
+	entities.push_back({ position, DefaultRotation, DefaultScale, mesh, textureID });
 	worlds.push_back(GetWorldMatrix(entities[entityID]));
 	currentEntityIndex++;
 	return entityID;
+}
+
+void EntityManager::Move(EntityID id, const glm::vec3& offset)
+{
+	entities[id].Position += offset;
 }
 
 void EntityManager::SetPosition(const EntityID& id, const glm::vec3& position)
@@ -57,4 +62,9 @@ void EntityManager::SetRotation(const EntityID& id, const glm::vec3& rotation)
 const std::vector<glm::mat4>& EntityManager::GetWorldMatrices()
 {
 	return worlds;
+}
+
+const std::vector<Entity>& EntityManager::GetEntities()
+{
+	return entities;
 }

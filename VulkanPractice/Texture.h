@@ -1,6 +1,12 @@
 #pragma once
 
 #include <vulkan/vulkan.h>
+#include <vector>
+#include <string>
+
+class VulkanApp;
+
+typedef uint32_t TextureID;
 
 struct Texture
 {
@@ -14,3 +20,13 @@ struct Texture
 	VkImageView ImageView;
 };
 
+class TextureManager
+{
+public:
+	friend class VulkanApp;
+	TextureID AddTexture(const std::string& filename);
+	const uint32_t TextureCount();
+protected:
+	std::vector<std::string> textureFileNames;
+	std::vector<Texture> textures;
+};

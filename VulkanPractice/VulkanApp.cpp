@@ -126,7 +126,7 @@ void VulkanApp::CleanUp()
 {
 	CleanupSwapChain();
 
-	for (auto& texture : textures)
+	for (auto& texture : textureManager.textures)
 	{
 		vkDestroyImageView(device, texture.ImageView, nullptr);
 		vkDestroyImage(device, texture.Image, nullptr);
@@ -437,13 +437,14 @@ void VulkanApp::RecordCommandBuffer(uint32_t imageIndex)
 
 	vkCmdBindVertexBuffers(commandBuffers[imageIndex], 0, 1, vertexBuffers, offsets);
 	vkCmdBindIndexBuffer(commandBuffers[imageIndex], indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-	vkCmdBindDescriptorSets(commandBuffers[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, (uint32_t)descriptorSetArray.size(), descriptorSetArray.data(), 1, dynamicOffsets);
-	vkCmdDrawIndexed(commandBuffers[imageIndex], meshes[0].IndexCount, 1, meshes[0].FirstIndex, 0, 0);
 
-	dynamicOffsets[0] = { 256 };
-	descriptorSetArray[1] = textureDescriptorSets[1 * swapChainImages.size() + imageIndex]; //Binding texture 1 
-	vkCmdBindDescriptorSets(commandBuffers[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, (uint32_t)descriptorSetArray.size(), descriptorSetArray.data(), 1, dynamicOffsets);
-	vkCmdDrawIndexed(commandBuffers[imageIndex], meshes[1].IndexCount, 1, meshes[1].FirstIndex, 0, 0);
+	for (auto& entity : entities.GetEntities())
+	{
+		descriptorSetArray[1] = textureDescriptorSets[entity.TextureID * swapChainImages.size() + imageIndex]; //Binding texture 1 
+		vkCmdBindDescriptorSets(commandBuffers[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, (uint32_t)descriptorSetArray.size(), descriptorSetArray.data(), 1, dynamicOffsets);
+		vkCmdDrawIndexed(commandBuffers[imageIndex], entity.MeshModel.IndexCount, 1, entity.MeshModel.FirstIndex, 0, 0);
+		dynamicOffsets[0] += 256;
+	}
 
 	vkCmdEndRenderPass(commandBuffers[imageIndex]);
 
@@ -1228,6 +1229,18 @@ VkSampleCountFlagBits VulkanApp::GetMaxUsableSampleCount()
 	return VK_SAMPLE_COUNT_1_BIT;
 }
 
+TextureID VulkanApp::AddTexture(const std::string& textureFileName)
+{
+	return textureManager.AddTexture(textureFileName);
+}
+
+Mesh VulkanApp::AddMesh(const std::string& meshFileName)
+{
+	auto mesh = meshManager.LoadModel(meshFileName.c_str());
+	meshes.push_back(mesh);
+	return mesh;
+}
+
 void VulkanApp::PickPhysicalDevice()
 {
 	uint32_t deviceCount = 0;
@@ -1665,9 +1678,11 @@ void VulkanApp::CreateDepthResources()
 
 void VulkanApp::CreateTextureImage()
 {
-	Texture texture = CreateTexture(TEXTURE_PATH.c_str());
-	textures.push_back(texture);
-	textures.push_back(CreateTexture("Textures/texture.jpg"));
+	for (auto& texFile : textureManager.textureFileNames)
+	{
+		Texture texture = CreateTexture(texFile.c_str());
+		textureManager.textures.push_back(texture);
+	}
 }
 
 void VulkanApp::CreateTextureImageView()
@@ -1702,9 +1717,9 @@ void VulkanApp::CreateTextureSampler()
 
 void VulkanApp::LoadModel()
 {
-	Mesh mesh = meshManager.LoadModel(MODEL_PATH.c_str());
-	meshes.push_back(mesh);
-	meshes.push_back(meshManager.LoadModel("models/sphere.obj"));
+	//Mesh mesh = meshManager.LoadModel(MODEL_PATH.c_str());
+	//meshes.push_back(mesh);
+	//meshes.push_back(meshManager.LoadModel("models/sphere.obj"));
 }
 
 void VulkanApp::CreateVertexBuffers()
@@ -1800,7 +1815,7 @@ void VulkanApp::CreateUniformBuffer()
 }
 
 const uint32_t TEXTURE_COUNT = 2;
-const uint32_t DESCRIPTOR_SET_COUNT = 2 * TEXTURE_COUNT + 1; // + 1 Sampler
+const uint32_t DESCRIPTOR_SET_COUNT = 2; // + 1 Sampler
 
 void VulkanApp::CreateDescriptorPool()
 {
@@ -1808,21 +1823,22 @@ void VulkanApp::CreateDescriptorPool()
 	poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	poolSizes[0].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
 	poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	poolSizes[1].descriptorCount = static_cast<uint32_t>(swapChainImages.size() * (TEXTURE_COUNT + 1));
+	poolSizes[1].descriptorCount = static_cast<uint32_t>(swapChainImages.size() * (textureManager.TextureCount() + 1));
 	poolSizes[2].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
 	poolSizes[2].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
 	poolSizes[3].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	poolSizes[3].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
 	poolSizes[4].type = VK_DESCRIPTOR_TYPE_SAMPLER;
-	poolSizes[4].descriptorCount = static_cast<uint32_t>(swapChainImages.size() * TEXTURE_COUNT);
+	poolSizes[4].descriptorCount = static_cast<uint32_t>(swapChainImages.size() * textureManager.TextureCount());
 	poolSizes[5].type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-	poolSizes[5].descriptorCount = static_cast<uint32_t>(swapChainImages.size() * TEXTURE_COUNT);
+	poolSizes[5].descriptorCount = static_cast<uint32_t>(swapChainImages.size() * textureManager.TextureCount());
 
+	auto totalDescriptorCount = DESCRIPTOR_SET_COUNT * (textureManager.TextureCount() + 1 /* For Sampler */);
 	VkDescriptorPoolCreateInfo poolInfo = {};
 	poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 	poolInfo.poolSizeCount = (uint32_t)poolSizes.size();
 	poolInfo.pPoolSizes = poolSizes.data();
-	poolInfo.maxSets = (uint32_t)swapChainImages.size() * DESCRIPTOR_SET_COUNT;
+	poolInfo.maxSets = (uint32_t)swapChainImages.size() * totalDescriptorCount;
 
 	if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS)
 	{
@@ -1854,7 +1870,7 @@ void VulkanApp::CreateDescriptorSets()
 
 		VkDescriptorImageInfo imageInfo = {};
 		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		imageInfo.imageView = textures[1].ImageView;
+		imageInfo.imageView = textureManager.textures[1].ImageView;
 		imageInfo.sampler = textureSampler;
 
 		VkDescriptorBufferInfo dynamicBufferInfo = {};
@@ -1904,27 +1920,27 @@ void VulkanApp::CreateDescriptorSets()
 		vkUpdateDescriptorSets(device, (uint32_t)descriptorWrites.size(), descriptorWrites.data(), 0, nullptr);
 	}
 
-	std::vector<VkDescriptorSetLayout> texlayouts(swapChainImages.size() * TEXTURE_COUNT, textureDescriptorSetLayout);
+	std::vector<VkDescriptorSetLayout> texlayouts(swapChainImages.size() * textureManager.TextureCount(), textureDescriptorSetLayout);
 	VkDescriptorSetAllocateInfo texAllocInfo = {};
 	texAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 	texAllocInfo.descriptorPool = descriptorPool;
-	texAllocInfo.descriptorSetCount = (uint32_t)swapChainImages.size() * TEXTURE_COUNT;
+	texAllocInfo.descriptorSetCount = (uint32_t)swapChainImages.size() * textureManager.TextureCount();
 	texAllocInfo.pSetLayouts = texlayouts.data();
 
-	textureDescriptorSets.resize(swapChainImages.size() * TEXTURE_COUNT);
+	textureDescriptorSets.resize(swapChainImages.size() * textureManager.TextureCount());
 	if (vkAllocateDescriptorSets(device, &texAllocInfo, textureDescriptorSets.data()) != VK_SUCCESS)
 	{
 		throw std::runtime_error("Failed to allocate texture descriptor sets");
 	}
 
-	for (size_t texIndex = 0; texIndex < textures.size(); ++texIndex)
+	for (size_t texIndex = 0; texIndex < textureManager.TextureCount(); ++texIndex)
 	{
 		for (size_t i = 0; i < swapChainImages.size(); ++i)
 		{
 			
 			VkDescriptorImageInfo imageInfo = {};
 			imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-			imageInfo.imageView = textures[texIndex].ImageView;
+			imageInfo.imageView = textureManager.textures[texIndex].ImageView;
 			imageInfo.sampler = VK_NULL_HANDLE;
 
 			VkDescriptorImageInfo samplerInfo = {};
