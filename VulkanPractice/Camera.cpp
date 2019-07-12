@@ -3,11 +3,12 @@
 Camera::Camera(float fovInAngles, float aspect, float near, float far)
 {
 	Projection = glm::perspective(glm::radians(fovInAngles), aspect, near, far);
+	Direction = glm::normalize(glm::vec3(0, 0, -1));
 }
 
 glm::mat4 Camera::GetView()
 {
-	auto view = glm::lookAt(Position, glm::vec3(0, 0, 0), glm::vec3(0.f, 1.f, 0.f));
+	auto view = glm::lookAt(Position, Position + Direction, DefaultUp);
 	return view;
 }
 
