@@ -68,3 +68,8 @@ const std::vector<Entity>& EntityManager::GetEntities()
 {
 	return entities;
 }
+
+const glm::vec3& EntityManager::GetPosition(EntityID id)
+{
+	return entities[id].Position;
+}

@@ -71,6 +71,7 @@ void VulkanApp::InitWindow()
 void VulkanApp::InitResources()
 {
 	camera = Camera(45.0f, swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10.f);
+	camera.Position = glm::vec3(0.f, 0.0f, 5.f);
 	Initialize();
 }
 
@@ -357,7 +358,6 @@ void VulkanApp::UpdateUniformBuffer(uint32_t currentImage)
 	static auto startTime = std::chrono::high_resolution_clock::now();
 	auto currentTime = std::chrono::high_resolution_clock::now();
 	auto time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-	camera.Position = glm::vec3(0.f, 0.0f, 5.f);
 
 	LightBuffer lightBuffer = {};
 	lightBuffer.dirLight.direction = glm::normalize(glm::vec3(sin(time * 0.1f), -1, 0));

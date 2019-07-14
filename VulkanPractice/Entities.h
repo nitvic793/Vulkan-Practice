@@ -30,6 +30,7 @@ public:
 	void							SetRotation(const EntityID& id, const glm::vec3& rotation);
 	const std::vector<glm::mat4>&	GetWorldMatrices();
 	const std::vector<Entity>&		GetEntities();
+	const glm::vec3&				GetPosition(EntityID id);
 private:
 	std::vector<Entity> entities;
 	std::vector<glm::mat4> worlds;
